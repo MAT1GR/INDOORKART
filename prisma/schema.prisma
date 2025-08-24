@@ -1,0 +1,208 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Branch {
+  id                String      @id @default(cuid())
+  name              String
+  address           String
+  phone             String
+  openDays          String      // JSON array of days [2,3,4,5,6,7] (Tue-Sun)
+  openHours         String      // JSON object {start: "17:00", end: "23:00"}
+  seats             Int         @default(8)
+  seatMap           String      // JSON array of seat configs
+  circuitLastUpdate DateTime    @default(now())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  timeSlots         TimeSlot[]
+  bookings          Booking[]
+  blackouts         Blackout[]
+  karts             Kart[]
+  
+  @@map("branches")
+}
+
+model TimeSlot {
+  id          String   @id @default(cuid())
+  branchId    String
+  date        String   // YYYY-MM-DD format
+  startTime   String   // HH:MM format
+  durationMin Int      @default(12)
+  bufferMin   Int      @default(3)
+  capacity    Int      @default(8)
+  available   Int      @default(8)
+  basePlanId  String?
+  status      String   @default("ok") // ok, cancelled, maintenance
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  branch      Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  bookings    Booking[]
+  holds       Hold[]
+  
+  @@map("time_slots")
+}
+
+model Kart {
+  id       String  @id @default(cuid())
+  branchId String
+  number   Int
+  status   String  @default("ok") // ok, oos (out of service)
+  reason   String?
+  fromDate String? // YYYY-MM-DD
+  toDate   String? // YYYY-MM-DD
+  
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  @@unique([branchId, number])
+  @@map("karts")
+}
+
+model Plan {
+  id          String @id @default(cuid())
+  name        String
+  qualyLaps   Int    @default(2)
+  raceLaps    Int
+  description String
+  active      Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  prices   PlanPrice[]
+  bookings Booking[]
+  
+  @@map("plans")
+}
+
+model PlanPrice {
+  id           String   @id @default(cuid())
+  planId       String
+  method       String   // cash, transfer, mp, card
+  amount       Int      // in cents
+  surchargePct Float?   @default(0)
+  validFrom    DateTime
+  validTo      DateTime?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  
+  @@map("plan_prices")
+}
+
+model Promo {
+  id        String   @id @default(cuid())
+  type      String   // valley, coupon, group, birthday
+  name      String
+  rules     String   // JSON with promo rules
+  validFrom DateTime
+  validTo   DateTime?
+  active    Boolean  @default(true)
+  maxUses   Int?
+  usedCount Int      @default(0)
+  createdAt DateTime @default(now())
+  
+  @@map("promos")
+}
+
+model Booking {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  branchId      String
+  timeSlotId    String
+  planId        String
+  seats         String   // JSON array of seat numbers
+  qty           Int
+  customerName  String
+  email         String
+  phone         String
+  notes         String?
+  status        String   @default("pending") // pending, confirmed, cancelled, noShow
+  paymentStatus String   @default("unpaid")  // unpaid, deposit, paid
+  depositPct    Int      @default(50)
+  subtotal      Int      // in cents
+  discount      Int      @default(0)
+  total         Int      // in cents
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  timeSlot TimeSlot @relation(fields: [timeSlotId], references: [id])
+  plan     Plan     @relation(fields: [planId], references: [id])
+  payments Payment[]
+  
+  @@map("bookings")
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  bookingId   String
+  method      String   // cash, transfer, mp, card
+  amount      Int      // in cents
+  status      String   @default("pending") // pending, completed, failed, refunded
+  externalRef String?
+  metadata    String?  // JSON with additional payment info
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  booking Booking @relation(fields: [bookingId], references: [id])
+  
+  @@map("payments")
+}
+
+model Blackout {
+  id               String   @id @default(cuid())
+  branchId         String
+  dateRangeStart   String   // YYYY-MM-DD
+  dateRangeEnd     String   // YYYY-MM-DD
+  reason           String
+  affectedSlots    String?  // JSON array of timeSlot IDs
+  createdAt        DateTime @default(now())
+  
+  branch Branch @relation(fields: [branchId], references: [id])
+  
+  @@map("blackouts")
+}
+
+model Hold {
+  id         String   @id @default(cuid())
+  timeSlotId String
+  seats      String   // JSON array of seat numbers
+  expiresAt  DateTime
+  sessionId  String   // to identify the user session
+  createdAt  DateTime @default(now())
+  
+  timeSlot TimeSlot @relation(fields: [timeSlotId], references: [id])
+  
+  @@map("holds")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("staff") // admin, staff
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("users")
+}
+
+model Settings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  
+  @@map("settings")
+}
