@@ -5,39 +5,33 @@ import Modal from '../common/Modal';
 const galleryImages = [
   {
     id: 1,
-    url: 'https://images.pexels.com/photos/7876643/pexels-photo-7876643.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750',
+    url: 'https://i.imgur.com/sJGTbHT.png',
     title: 'Pista principal',
     description: 'Vista panorámica de nuestro circuito cubierto de 330m²'
   },
   {
     id: 2,
-    url: 'https://images.pexels.com/photos/1421903/pexels-photo-1421903.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750',
+    url: 'https://scontent.fros8-1.fna.fbcdn.net/v/t1.6435-9/71744610_2407813242627965_8529066418560303104_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=833d8c&_nc_ohc=eVqkWQE0h50Q7kNvwHRwzQB&_nc_oc=AdnAW9-blx-JLZtJ2fMGvv6lCMobkdmXXuotah14NBCaxR8ruPTbpAJLxfE4J0J1Tok&_nc_zt=23&_nc_ht=scontent.fros8-1.fna&_nc_gid=789LqMKtUe4fKuOJ7AA_LQ&oh=00_AfX4GfYEr2F2VEw5yFSzW3qJULzPvNOkLvrIK0bISgvF4g&oe=68D2F9C0',
     title: 'Karts profesionales',
     description: 'Flota de 8 karts mantenidos diariamente'
   },
   {
     id: 3,
-    url: 'https://images.pexels.com/photos/3846546/pexels-photo-3846546.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750',
+    url: 'https://scontent.fros8-1.fna.fbcdn.net/v/t39.30808-6/474733716_1074526884475287_7292196122953941809_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=833d8c&_nc_ohc=NgvGJxuuhA4Q7kNvwHdxJeC&_nc_oc=Adl6kvUpOSukq4IWsVnnk8mfUqiVT0Tvx_oCVuPjyxawItf_8NPzu1qylqmnwkNuY8o&_nc_zt=23&_nc_ht=scontent.fros8-1.fna&_nc_gid=O3V_IhJSAvATjVz4uxPyjw&oh=00_AfXUBM88lerJNI_ncPvp3blCOsC4ENtRM9nMpLeLIp-47w&oe=68B176FD',
     title: 'Cronometraje computarizado',
     description: 'Sistema de timing profesional en tiempo real'
   },
   {
     id: 4,
-    url: 'https://images.pexels.com/photos/5480696/pexels-photo-5480696.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750',
+    url: 'https://scontent.fros8-1.fna.fbcdn.net/v/t39.30808-6/474227269_1074527161141926_6204129546425465561_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=833d8c&_nc_ohc=ASkaiJiVsC4Q7kNvwH8Z2rR&_nc_oc=AdkzWq_Vuhnv0HaW-nlk_lVSG_PrFjmxXCAu8MbYaxTGovN94PbV7R-1DgZs9RNcicg&_nc_zt=23&_nc_ht=scontent.fros8-1.fna&_nc_gid=xzpq2w3wnG5X4DYkVhug_Q&oh=00_AfUBPXZuCgKhRATPgVbwarI3D4e9ltYNmAU1IJy4SQPReA&oe=68B16CF3',
     title: 'Área de espera',
     description: 'Zona cómoda para spectadores con buffet'
   },
   {
     id: 5,
-    url: 'https://images.pexels.com/photos/6249523/pexels-photo-6249523.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750',
-    title: 'Briefing de seguridad',
-    description: 'Instrucciones obligatorias antes de cada carrera'
-  },
-  {
-    id: 6,
-    url: 'https://images.pexels.com/photos/3846549/pexels-photo-3846549.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750',
-    title: 'Podio de ganadores',
-    description: 'Celebrá tu victoria con tus amigos'
+    url: 'https://scontent.fros8-1.fna.fbcdn.net/v/t1.6435-9/72688687_2407813375961285_6501224483364274176_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=833d8c&_nc_ohc=V2g2pxZ36GYQ7kNvwHdjvkn&_nc_oc=Adlh0tA_EXDKTIPrZyQY4cQpSU_xtpP6FmNVOHi0ohxuJcZTzqVta6D3Sh-mARp33Ak&_nc_zt=23&_nc_ht=scontent.fros8-1.fna&_nc_gid=NjlmDhFV-91T8CQZWeLCeQ&oh=00_AfXexMppH3yNRC61Va7NKSeqxs2TIFZQWJ44NHBs0akL3g&oe=68D31110',
+    title: 'Diversión asegurada',
+    description: 'Veni a divertirte con tus amigo al mejor Indoor Kart de la ciudad'
   },
 ];
 

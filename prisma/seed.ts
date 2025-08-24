@@ -8,7 +8,7 @@ async function main() {
   const branch = await prisma.branch.create({
     data: {
       name: 'Rosario Indoor Kart',
-      address: 'Anchorena 2750, Rosario, Santa Fe, Argentina',
+      address: 'Anchorena 2751, Rosario, Santa Fe, Argentina',
       phone: '+54 9 341 618 8143',
       openDays: JSON.stringify([2, 3, 4, 5, 6, 7]), // Tue-Sun
       openHours: JSON.stringify({ start: '17:00', end: '23:00' }),

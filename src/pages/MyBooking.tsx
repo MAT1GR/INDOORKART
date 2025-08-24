@@ -235,7 +235,7 @@ const MyBooking: React.FC = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <p className="mb-2"><strong>📍 Dirección:</strong></p>
-                  <p className="text-red-100">Anchorena 2750, Rosario, Santa Fe</p>
+                  <p className="text-red-100">Anchorena 2751, Rosario, Santa Fe</p>
                 </div>
                 <div>
                   <p className="mb-2"><strong>🕒 Llegá 15 minutos antes:</strong></p>

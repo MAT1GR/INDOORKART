@@ -17,7 +17,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({ branch }) => {
             Vení a <span className="bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">visitarnos</span>
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Te esperamos en el corazón de Rosario con fácil acceso y todas las comodidades
+            ¡Te esperamos para que tengas una experiencia única!
           </p>
         </div>
 
@@ -25,7 +25,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({ branch }) => {
           {/* Map */}
           <div className="relative h-96 bg-gray-100 rounded-2xl overflow-hidden shadow-lg">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3348.123!2d-60.655!3d-32.956!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzLCsDU3JzIxLjYiUyA2MMKwMzknMTguMCJX!5e0!3m2!1sen!2sar!4v1234567890"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3346.209403925736!2d-60.67642862365269!3d-32.998254273571945!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95b7abf60a995aad%3A0xfcbc319555b2e134!2sRosario%20Indoor%20kart!5e0!3m2!1ses-419!2sar!4v1756078076852!5m2!1ses-419!2sar"
               width="100%"
               height="100%"
               style={{ border: 0 }}

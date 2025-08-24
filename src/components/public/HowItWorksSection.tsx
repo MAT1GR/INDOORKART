@@ -11,7 +11,7 @@ const steps = [
   {
     icon: <Clock className="h-8 w-8" />,
     title: '2. Llegá 15 min antes',
-    description: 'Vení con documento. Te esperamos en Anchorena 2750 para el briefing.',
+    description: 'Vení con documento. Te esperamos en Anchorena 2751 para el briefing.',
     color: 'from-green-500 to-green-600',
   },
   {

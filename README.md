@@ -103,7 +103,7 @@ La aplicación estará disponible en:
 ## 📊 Base de Datos
 
 ### Estructura Principal
-- **Branch**: Sucursal (única: Anchorena 2750)
+- **Branch**: Sucursal (única: Anchorena 2751)
 - **TimeSlot**: Horarios disponibles (generados cada 20min)
 - **Plan/PlanPrice**: Planes con precios versionados por método de pago
 - **Booking**: Reservas con estados (pending/confirmed/cancelled)
@@ -113,7 +113,7 @@ La aplicación estará disponible en:
 - **Hold**: Reservas temporales para evitar conflictos
 
 ### Datos Semilla Incluidos
-- ✅ Sucursal Rosario (Anchorena 2750)
+- ✅ Sucursal Rosario (Anchorena 2751)
 - ✅ 3 planes iniciales (Plan 10, Plan 15, Promo Doble)
 - ✅ Precios por método de pago
 - ✅ 8 karts numerados
@@ -284,7 +284,7 @@ docker run -p 3000:3000 rosario-kart
 
 ### Información de la Empresa
 - **Nombre**: Rosario Indoor Kart
-- **Dirección**: Anchorena 2750, Rosario, Santa Fe, Argentina  
+- **Dirección**: Anchorena 2751, Rosario, Santa Fe, Argentina  
 - **Teléfono**: +54 9 341 618 8143
 - **WhatsApp**: +54 9 341 618 8143
 - **Horarios**: Martes a Domingo 17:00-23:00

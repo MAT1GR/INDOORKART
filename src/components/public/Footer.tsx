@@ -17,7 +17,7 @@ const Footer: React.FC = () => {
             </p>
             <div className="flex space-x-4">
               <a
-                href="#"
+                href="https://www.facebook.com/rosarioindoorkart23"
                 className="bg-gray-800 p-2 rounded-lg hover:bg-red-600 transition-colors"
                 aria-label="Facebook"
               >
@@ -39,7 +39,7 @@ const Footer: React.FC = () => {
             <div className="space-y-3 text-sm">
               <div className="flex items-start space-x-2">
                 <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                <span className="text-gray-400">Anchorena 2750, Rosario, Santa Fe</span>
+                <span className="text-gray-400">Anchorena 2751, Rosario, Santa Fe</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Phone className="h-4 w-4 text-gray-400" />
