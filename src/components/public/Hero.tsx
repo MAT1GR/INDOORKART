@@ -1,9 +1,7 @@
 import React from 'react';
 import { Calendar, Clock, Users, Flag, MapPin, Car, GitBranch } from 'lucide-react';
 import Button from '../common/Button';
-// En Vite, los archivos en la carpeta 'public' se sirven desde la raíz.
-// Por lo tanto, la ruta correcta es '/logo.png' y no '../public/logo.png'.
-import logo from '../public/logo.png'; 
+import logo from '../public/logo.png';
 
 // SVG for WhatsApp Icon
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -29,9 +27,9 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ onBookingClick }) => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden p-4">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden p-4 sm:p-6 md:p-8">
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-red-900 to-orange-900">
+      <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-red-600 to-gray-900">
         <div className="absolute inset-0 bg-black/60"></div>
         <div 
           className="absolute inset-0 opacity-15 bg-cover bg-center"
@@ -41,63 +39,68 @@ const Hero: React.FC<HeroProps> = ({ onBookingClick }) => {
         ></div>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center justify-center text-center text-white max-w-6xl mx-auto">
-        {/* Logo */}
-        <div className="mb-4">
-          <img src={logo} alt="Rosario Indoor Kart Logo" className="max-w-md md:max-w-lg mx-auto" />
+      <div className="relative z-10 flex flex-col items-center justify-center text-center text-white w-full max-w-6xl mx-auto">
+        
+        {/* Logo - Movido más arriba con transform y con más margen inferior */}
+        <div className="w-full max-w-xs sm:max-w-sm md:max-w-xl lg:max-w-2xl transform -translate-y-8 md:-translate-y-10">
+          <img src={logo} alt="Rosario Indoor Kart Logo" className="w-full h-auto" />
         </div>
 
-        <p className="text-xl md:text-2xl font-medium mb-3 text-red-100">
+        {/* Slogan - Se quita margen superior para que el espacio lo dé el logo */}
+        <p className="text-lg sm:text-xl md:text-2xl font-bold tracking-wider uppercase mb-4 md:mb-6 text-red-100">
           🏁 La adrenalina que buscás 🏁
         </p>
-
-        <p className="text-lg md:text-xl mb-8 text-gray-300 max-w-2xl mx-auto">
-          Viví la experiencia del karting más emocionante de Rosario. 
-          Circuito cubierto, cronometraje computarizado y diversión garantizada.
-        </p>
+        
+        {/* Descripción con más margen inferior */}
+        <div className="text-base sm:text-lg md:text-xl mb-10 md:mb-12 text-gray-200 max-w-2xl mx-auto">
+          {/* Texto corto para móviles */}
+          <p className="md:hidden">
+            Viví la experiencia del karting más emocionante de Rosario.
+          </p>
+          {/* Texto largo para pantallas más grandes */}
+          <p className="hidden md:block">
+            Viví la experiencia del karting más emocionante de Rosario. 
+            Circuito cubierto, cronometraje computarizado y diversión garantizada.
+          </p>
+        </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 w-full max-w-4xl">
-          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 border border-white/10 flex flex-col items-center justify-center h-full">
-            <GitBranch className="h-8 w-8 text-red-400 mb-2" />
-            <div className="text-xl font-bold">330m²</div>
-            <div className="text-sm text-gray-300">Circuito cubierto</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-10 md:mb-12 w-full max-w-4xl">
+          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-3 border border-white/10 flex flex-col items-center justify-center h-full">
+            <Car className="h-6 w-6 md:h-8 md:w-8 text-orange-400 mb-2" />
+            <div className="text-sm md:text-lg font-bold text-center">Máxima Velocidad</div>
           </div>
-          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 border border-white/10 flex flex-col items-center justify-center h-full">
-            <Car className="h-8 w-8 text-orange-400 mb-2" />
-            <div className="text-xl font-bold">8 Karts</div>
-            <div className="text-sm text-gray-300">En simultáneo</div>
+          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-3 border border-white/10 flex flex-col items-center justify-center h-full">
+            <GitBranch className="h-6 w-6 md:h-8 md:w-8 text-red-400 mb-2" />
+            <div className="text-sm md:text-lg font-bold text-center">Adrenalina Pura</div>
           </div>
-          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 border border-white/10 flex flex-col items-center justify-center h-full">
-            <Flag className="h-8 w-8 text-yellow-400 mb-2" />
-            <div className="text-xl font-bold">Qualy + Carrera</div>
-            <div className="text-sm text-gray-300">Toda la emoción</div>
+          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-3 border border-white/10 flex flex-col items-center justify-center h-full">
+            <Users className="h-6 w-6 md:h-8 md:w-8 text-yellow-400 mb-2" />
+            <div className="text-sm md:text-lg font-bold text-center">Desafiá a Amigos</div>
           </div>
-          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 border border-white/10 flex flex-col items-center justify-center h-full">
-            <Clock className="h-8 w-8 text-green-400 mb-2" />
-            <div className="text-xl font-bold">Timing Profesional</div>
-            <div className="text-sm text-gray-300">Tiempos reales</div>
+          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-3 border border-white/10 flex flex-col items-center justify-center h-full">
+            <Flag className="h-6 w-6 md:h-8 md:w-8 text-green-400 mb-2" />
+            <div className="text-sm md:text-lg font-bold text-center">Viví la Carrera</div>
           </div>
         </div>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 w-full mb-10 md:mb-12">
           <Button
             onClick={onBookingClick}
             size="lg"
-            className="text-xl px-8 py-4 shadow-2xl hover:shadow-red-500/25 transform hover:scale-105 transition-all duration-300"
+            className="w-full sm:w-auto text-lg md:text-xl px-8 py-3 shadow-2xl hover:shadow-red-500/25 transform hover:scale-105 transition-all duration-300"
           >
-            <Calendar className="h-6 w-6 mr-2" />
+            <Calendar className="h-5 w-5 md:h-6 md:w-6 mr-2" />
             <span>¡RESERVÁ AHORA!</span>
           </Button>
-
           <a
             href={`https://wa.me/5493416188143?text=¡Hola! Quiero consultar sobre karting`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-8 py-4 text-lg font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-500/25"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3 text-base md:text-lg font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-green-500/25"
           >
-            <WhatsAppIcon className="h-6 w-6 mr-2" />
+            <WhatsAppIcon className="h-5 w-5 md:h-6 md:h-6 mr-2" />
             <span>Consultá por WhatsApp</span>
           </a>
         </div>

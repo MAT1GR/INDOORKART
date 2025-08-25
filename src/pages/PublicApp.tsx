@@ -9,7 +9,6 @@ import RequirementsSection from '../components/public/RequirementsSection';
 import GallerySection from '../components/public/GallerySection';
 import LocationSection from '../components/public/LocationSection';
 import FAQSection from '../components/public/FAQSection';
-import ContactSection from '../components/public/ContactSection';
 import Footer from '../components/public/Footer';
 
 const PublicApp: React.FC = () => {
@@ -36,7 +35,6 @@ const PublicApp: React.FC = () => {
       <GallerySection />
       <LocationSection branch={branch} />
       <FAQSection />
-      <ContactSection branch={branch} />
       <Footer />
       
       <BookingWizard
