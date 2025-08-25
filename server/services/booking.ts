@@ -1,11 +1,11 @@
-import nodemailer from 'nodemailer';
-import { PrismaClient } from '@prisma/client';
+import nodemailer from "nodemailer";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 export function generateBookingCode(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = 'RIK-';
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "RIK-";
   for (let i = 0; i < 6; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -14,8 +14,8 @@ export function generateBookingCode(): string {
 
 export async function sendConfirmationEmail(booking: any) {
   // Configure email transporter
-  const transporter = nodemailer.createTransporter({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: 587,
     secure: false,
     auth: {
@@ -25,7 +25,7 @@ export async function sendConfirmationEmail(booking: any) {
   });
 
   const seats = JSON.parse(booking.seats) as number[];
-  const seatsList = seats.join(', ');
+  const seatsList = seats.join(", ");
 
   const html = `
     <!DOCTYPE html>
@@ -63,7 +63,9 @@ export async function sendConfirmationEmail(booking: any) {
             <p><strong>Plan:</strong> ${booking.plan.name}</p>
             <p><strong>Karts:</strong> ${seatsList}</p>
             <p><strong>Cantidad:</strong> ${booking.qty} piloto(s)</p>
-            <p><strong>Total:</strong> $${(booking.total / 100).toLocaleString('es-AR')}</p>
+            <p><strong>Total:</strong> $${(booking.total / 100).toLocaleString(
+              "es-AR"
+            )}</p>
           </div>
 
           <div class="qr-code">
@@ -90,7 +92,9 @@ export async function sendConfirmationEmail(booking: any) {
             <p><strong>Horarios:</strong> Martes a Domingo 17:00-23:00</p>
           </div>
 
-          <p>Si necesitás cancelar o reprogramar tu reserva, podés hacerlo hasta 24 horas antes desde nuestra web con el código: <strong>${booking.code}</strong></p>
+          <p>Si necesitás cancelar o reprogramar tu reserva, podés hacerlo hasta 24 horas antes desde nuestra web con el código: <strong>${
+            booking.code
+          }</strong></p>
           
           <p><strong>¡Recordá que la seña del 50% no se reintegra en caso de cancelación!</strong></p>
         </div>
@@ -105,7 +109,7 @@ export async function sendConfirmationEmail(booking: any) {
   `;
 
   await transporter.sendMail({
-    from: process.env.SMTP_USER || 'reservas@rosarioindoorkart.com',
+    from: process.env.SMTP_USER || "reservas@rosarioindoorkart.com",
     to: booking.email,
     subject: `🏎️ Confirmación de Reserva ${booking.code} - Rosario Indoor Kart`,
     html,

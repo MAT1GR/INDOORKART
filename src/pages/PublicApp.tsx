@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useApi } from '../hooks/useApi';
-import { Branch } from '../types';
-import Hero from '../components/public/Hero';
-import BookingWizard from '../components/booking/BookingWizard';
-import PlansSection from '../components/public/PlansSection';
-import HowItWorksSection from '../components/public/HowItWorksSection';
-import RequirementsSection from '../components/public/RequirementsSection';
-import GallerySection from '../components/public/GallerySection';
-import LocationSection from '../components/public/LocationSection';
-import FAQSection from '../components/public/FAQSection';
-import Footer from '../components/public/Footer';
+import React, { useState, useEffect } from "react";
+import { useApi } from "../hooks/useApi";
+import { Branch } from "../types";
+import Hero from "../components/public/Hero";
+import BookingWizard from "../components/booking/BookingWizard";
+import PlansSection from "../components/public/PlansSection";
+import HowItWorksSection from "../components/public/HowItWorksSection";
+import RequirementsSection from "../components/public/RequirementsSection";
+import GallerySection from "../components/public/GallerySection";
+import LocationSection from "../components/public/LocationSection";
+import FAQSection from "../components/public/FAQSection";
+import Footer from "../components/public/Footer";
 
 const PublicApp: React.FC = () => {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const { data: branch, loading } = useApi<Branch>('/public/branch');
+  const { data: branch, loading } = useApi<Branch>("/public/branch");
 
   if (loading || !branch) {
     return (
@@ -28,7 +28,7 @@ const PublicApp: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      <Hero onBookingClick={() => setIsBookingOpen(true)} branch={branch} />
+      <Hero onBookingClick={() => setIsBookingOpen(true)} />
       <PlansSection />
       <HowItWorksSection />
       <RequirementsSection />
@@ -36,7 +36,7 @@ const PublicApp: React.FC = () => {
       <LocationSection branch={branch} />
       <FAQSection />
       <Footer />
-      
+
       <BookingWizard
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
