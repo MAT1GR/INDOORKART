@@ -106,7 +106,7 @@ const Hero: React.FC<HeroProps> = ({ onBookingClick }) => {
         <div className="flex flex-col md:flex-row items-center justify-center space-y-3 md:space-y-0 md:space-x-8 text-sm text-gray-300">
           <div className="flex items-center space-x-2">
             <MapPin className="h-4 w-4 text-red-400" />
-            <span>Anchorena 2750, Rosario</span>
+            <span>Anchorena 2751, Rosario</span>
           </div>
           <div className="flex items-center space-x-2">
             <Clock className="h-4 w-4 text-orange-400" />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Users, Scale, Clock, Shield, FileText } from 'lucide-react';
+import { AlertTriangle, Users, Scale, Clock, Shield, FileText, CheckCircle } from 'lucide-react';
 
 const requirements = [
   {
@@ -29,12 +29,11 @@ const requirements = [
 ];
 
 const safetyRules = [
-  'Uso obligatorio de casco (incluido)',
-  'Prohibido el contacto intencional',
-  'Velocidad controlada según experiencia',
-  'Personal capacitado supervisando',
-  'Karts con sistemas de seguridad',
-  'Pista diseñada para máxima seguridad',
+  { text: 'Uso obligatorio de casco (incluido)' },
+  { text: 'Prohibido el contacto intencional' },
+  { text: 'Personal capacitado supervisando' },
+  { text: 'Karts con sistemas de seguridad' },
+  { text: 'Pista diseñada para máxima seguridad' },
 ];
 
 const RequirementsSection: React.FC = () => {
@@ -52,113 +51,82 @@ const RequirementsSection: React.FC = () => {
 
         <div className="grid md:grid-cols-2 gap-12 mb-16">
           {/* Requirements */}
-          <div>
+          <div className="flex flex-col">
             <h3 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
               <AlertTriangle className="h-8 w-8 text-red-600 mr-3" />
               Requisitos obligatorios
             </h3>
-
-            <div className="space-y-6">
-              {requirements.map((req, index) => (
-                <div
-                  key={index}
-                  className="flex items-start space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow duration-200"
-                >
-                  <div className={`p-2 rounded-lg ${req.color}`}>
-                    {req.icon}
+            <div className="flex-grow flex flex-col justify-between space-y-8 bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
+              <div className="space-y-6">
+                {requirements.map((req, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow duration-200"
+                  >
+                    <div className={`p-2 rounded-lg ${req.color}`}>
+                      {req.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-gray-900 mb-1">
+                        {req.title}
+                      </h4>
+                      <p className="text-gray-600 text-sm">
+                        {req.description}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-gray-900 mb-1">
-                      {req.title}
+                ))}
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-xl mt-8">
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className="h-6 w-6 text-yellow-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-yellow-800 mb-2">
+                      ¡Importante!
                     </h4>
-                    <p className="text-gray-600 text-sm">
-                      {req.description}
+                    <p className="text-yellow-700 text-sm leading-relaxed">
+                      Estos requisitos son <strong>no negociables</strong> por razones de seguridad. 
+                      Si no cumplís con alguno, no podremos permitir tu participación en la carrera.
                     </p>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-xl mt-8">
-              <div className="flex items-start space-x-3">
-                <AlertTriangle className="h-6 w-6 text-yellow-600 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-yellow-800 mb-2">
-                    ¡Importante!
-                  </h4>
-                  <p className="text-yellow-700 text-sm leading-relaxed">
-                    Estos requisitos son <strong>no negociables</strong> por razones de seguridad. 
-                    Si no cumplís con alguno, no podremos permitir tu participación en la carrera.
-                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Safety Rules */}
-          <div>
+          <div className="flex flex-col">
             <h3 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
               <Shield className="h-8 w-8 text-green-600 mr-3" />
               Normas de seguridad
             </h3>
-
-            <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="flex-grow flex flex-col justify-between space-y-8 bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
               <div className="space-y-4">
                 {safetyRules.map((rule, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-gray-700">{rule}</span>
+                  <div key={index} className="flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-200">
+                    <div className="p-2 rounded-lg text-green-600 bg-green-100">
+                      <CheckCircle className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-gray-700 font-medium">{rule.text}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-
-              <div className="mt-8 p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-start space-x-2">
-                  <Shield className="h-5 w-5 text-green-600 mt-0.5" />
+              <div className="bg-green-50 border border-green-200 p-6 rounded-xl mt-8">
+                <div className="flex items-start space-x-3">
+                  <Shield className="h-6 w-6 text-green-600 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-green-800 mb-1">
+                    <h4 className="font-bold text-green-800 mb-2">
                       Compromiso con la seguridad
                     </h4>
-                    <p className="text-green-700 text-sm">
+                    <p className="text-green-700 text-sm leading-relaxed">
                       Nuestro personal está entrenado para garantizar que todos 
                       disfruten de una experiencia emocionante pero siempre segura.
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* What's Included */}
-        <div className="bg-gradient-to-r from-red-600 to-orange-600 p-8 rounded-2xl text-white text-center">
-          <h3 className="text-2xl font-bold mb-6">
-            ¿Qué incluye tu experiencia?
-          </h3>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3">
-                <Shield className="h-8 w-8" />
-              </div>
-              <h4 className="font-medium mb-2">Equipamiento</h4>
-              <p className="text-sm text-red-100">Casco homologado incluido</p>
-            </div>
-            
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3">
-                <Users className="h-8 w-8" />
-              </div>
-              <h4 className="font-medium mb-2">Briefing</h4>
-              <p className="text-sm text-red-100">Instrucción de seguridad</p>
-            </div>
-            
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3">
-                <Clock className="h-8 w-8" />
-              </div>
-              <h4 className="font-medium mb-2">Cronometraje</h4>
-              <p className="text-sm text-red-100">Tiempos en tiempo real</p>
             </div>
           </div>
         </div>
