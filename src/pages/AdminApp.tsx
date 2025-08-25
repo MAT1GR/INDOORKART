@@ -8,12 +8,12 @@ import AdminLayout from "../components/admin/AdminLayout";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 
 // Importa los nuevos componentes que crearemos
-// import AdminBookings from '../components/admin/AdminBookings';
-// import AdminTimeslots from '../components/admin/AdminTimeslots';
-// import AdminKarts from '../components/admin/AdminKarts';
-// import AdminPlans from '../components/admin/AdminPlans';
-// import AdminUsers from '../components/admin/AdminUsers';
-// import AdminSettings from '../components/admin/AdminSettings';
+import AdminBookings from "../components/admin/AdminBookings";
+import AdminTimeslots from "../components/admin/AdminTimeslots";
+import AdminKarts from "../components/admin/AdminKarts";
+import AdminPlans from "../components/admin/AdminPlans";
+import AdminUsers from "../components/admin/AdminUsers";
+import AdminSettings from "../components/admin/AdminSettings";
 
 const AdminApp: React.FC = () => {
   const { user, loading } = useAuth();
@@ -29,16 +29,6 @@ const AdminApp: React.FC = () => {
   if (!user) {
     return <AdminLogin />;
   }
-
-  // Placeholder para los componentes que aún no existen.
-  const AdminBookings = () => <div>Gestión de Reservas (próximamente)</div>;
-  const AdminTimeslots = () => <div>Gestión de Horarios (próximamente)</div>;
-  const AdminKarts = () => <div>Gestión de Karts (próximamente)</div>;
-  const AdminPlans = () => <div>Gestión de Planes (próximamente)</div>;
-  const AdminUsers = () => <div>Gestión de Usuarios (próximamente)</div>;
-  const AdminSettings = () => (
-    <div>Gestión de Configuración (próximamente)</div>
-  );
 
   return (
     <AdminLayout>
