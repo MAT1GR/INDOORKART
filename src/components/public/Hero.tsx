@@ -46,10 +46,7 @@ const Hero: React.FC<HeroProps> = ({ onBookingClick }) => {
           <img src={logo} alt="Rosario Indoor Kart Logo" className="w-full h-auto" />
         </div>
 
-        {/* Slogan - Se quita margen superior para que el espacio lo dé el logo */}
-        <p className="text-lg sm:text-xl md:text-2xl font-bold tracking-wider uppercase mb-4 md:mb-6 text-red-100">
-          🏁 La adrenalina que buscás 🏁
-        </p>
+        
         
         {/* Descripción con más margen inferior */}
         <div className="text-base sm:text-lg md:text-xl mb-10 md:mb-12 text-gray-200 max-w-2xl mx-auto">
