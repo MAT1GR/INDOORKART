@@ -24,7 +24,7 @@ const Footer: React.FC = () => {
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="#"
+                href="https://www.instagram.com/rosarioindoorkart/"
                 className="bg-gray-800 p-2 rounded-lg hover:bg-red-600 transition-colors"
                 aria-label="Instagram"
               >

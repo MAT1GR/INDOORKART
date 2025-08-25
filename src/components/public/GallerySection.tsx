@@ -30,7 +30,7 @@ const galleryImages = [
   {
     id: 5,
     url: 'https://scontent.fros8-1.fna.fbcdn.net/v/t1.6435-9/72688687_2407813375961285_6501224483364274176_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=833d8c&_nc_ohc=V2g2pxZ36GYQ7kNvwHdjvkn&_nc_oc=Adlh0tA_EXDKTIPrZyQY4cQpSU_xtpP6FmNVOHi0ohxuJcZTzqVta6D3Sh-mARp33Ak&_nc_zt=23&_nc_ht=scontent.fros8-1.fna&_nc_gid=NjlmDhFV-91T8CQZWeLCeQ&oh=00_AfXexMppH3yNRC61Va7NKSeqxs2TIFZQWJ44NHBs0akL3g&oe=68D31110',
-    title: 'Diversión asegurada',
+    title: 'Diversión garantizada',
     description: 'Veni a divertirte con tus amigo al mejor Indoor Kart de la ciudad'
   },
 ];
