@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:server": "tsx watch server/index.ts",
-    "dev:full": "concurrently \"npm run dev:server\" \"npm run dev\"",
+    "dev:full": "concurrently \"npm run dev:server -- --host\" \"npm run dev -- --host\"",
     "build": "tsc && vite build",
     "build:server": "tsc server/index.ts --outDir dist",
     "start": "node dist/index.js",

@@ -2,6 +2,23 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Play, Image as ImageIcon } from 'lucide-react';
 import Modal from '../common/Modal';
 
+const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+  </svg>
+);
+
 const galleryImages = [
   {
     id: 1,
@@ -125,27 +142,6 @@ const GallerySection: React.FC = () => {
             <div className="text-4xl mb-4">☕</div>
             <h3 className="text-xl font-bold text-white mb-2">Área de Descanso</h3>
             <p className="text-gray-300">Buffet y zona cómoda para acompañantes y espectadores</p>
-          </div>
-        </div>
-
-        {/* Virtual Tour CTA */}
-        <div className="text-center mt-12">
-          <div className="bg-gradient-to-r from-red-600 to-orange-600 p-8 rounded-2xl">
-            <h3 className="text-2xl font-bold text-white mb-4">
-              ¿Querés conocer más?
-            </h3>
-            <p className="text-red-100 mb-6">
-              Visitanos y conocé nuestras instalaciones en persona
-            </p>
-            <a
-              href={`https://wa.me/5493416188143?text=¡Hola! Quiero conocer las instalaciones`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-2 bg-white text-red-600 px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-            >
-              <Play className="h-5 w-5" />
-              <span>Consultá por WhatsApp</span>
-            </a>
           </div>
         </div>
       </div>
