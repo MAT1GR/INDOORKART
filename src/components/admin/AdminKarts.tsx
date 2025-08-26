@@ -5,7 +5,7 @@ import Button from "../common/Button";
 import Input from "../common/Input";
 import LoadingSpinner from "../common/LoadingSpinner";
 import Modal from "../common/Modal";
-import { Car, Wrench, PlusCircle, Trash2 } from "lucide-react";
+import { Wrench, PlusCircle, Trash2 } from "lucide-react";
 
 const AdminKarts: React.FC = () => {
   const { data: branch } = useApi<Branch>("/public/branch");
@@ -96,33 +96,26 @@ const AdminKarts: React.FC = () => {
           {karts?.map((kart) => (
             <div
               key={kart.id}
-              className={`p-6 rounded-lg border relative ${
+              className={`p-6 rounded-lg border flex flex-col justify-between ${
                 kart.status === "ok"
                   ? "bg-green-50 border-green-200"
                   : "bg-red-50 border-red-200"
               }`}
             >
-              <button
-                onClick={() => handleDeleteKart(kart.id)}
-                className="absolute top-2 right-2 p-1 bg-red-100 rounded-full hover:bg-red-200"
-              >
-                <Trash2 className="h-4 w-4 text-red-600" />
-              </button>
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold">Kart {kart.number}</h3>
-                <Car
-                  className={`h-8 w-8 ${
-                    kart.status === "ok" ? "text-green-600" : "text-red-600"
+              <div>
+                <div className="flex justify-between items-start">
+                  <h3 className="text-2xl font-bold">Kart {kart.number}</h3>
+                  <span className="text-4xl">🏎️</span>
+                </div>
+                <p
+                  className={`capitalize font-medium mt-1 ${
+                    kart.status === "ok" ? "text-green-800" : "text-red-800"
                   }`}
-                />
+                >
+                  {kart.status === "ok" ? "Operativo" : "Fuera de servicio"}
+                </p>
               </div>
-              <p
-                className={`capitalize font-medium ${
-                  kart.status === "ok" ? "text-green-800" : "text-red-800"
-                }`}
-              >
-                {kart.status === "ok" ? "Operativo" : "Fuera de servicio"}
-              </p>
+
               <div className="mt-4 flex space-x-2">
                 <Button
                   size="sm"
@@ -138,6 +131,14 @@ const AdminKarts: React.FC = () => {
                   disabled={kart.status === "oos"}
                 >
                   Fuera de Servicio
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleDeleteKart(kart.id)}
+                  className="bg-red-100 hover:bg-red-200"
+                >
+                  <Trash2 className="h-4 w-4 text-red-600" />
                 </Button>
               </div>
             </div>

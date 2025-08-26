@@ -5,14 +5,21 @@ import Button from "../common/Button";
 import LoadingSpinner from "../common/LoadingSpinner";
 import Modal from "../common/Modal";
 import Input from "../common/Input";
-import { CreditCard, PlusCircle } from "lucide-react";
+import {
+  CreditCard,
+  PlusCircle,
+  Trash2,
+  Edit,
+  Flag,
+  Clock,
+} from "lucide-react";
 import { formatCurrency } from "../../utils/formatters";
-import { mutate } from "swr";
 
 const PlanForm: React.FC<{
   plan?: Plan | null;
   onClose: () => void;
-}> = ({ plan, onClose }) => {
+  onSave: () => void;
+}> = ({ plan, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     name: plan?.name || "",
     description: plan?.description || "",
@@ -26,9 +33,9 @@ const PlanForm: React.FC<{
     try {
       await apiCall(plan?.id ? `/admin/plans/${plan.id}` : "/admin/plans", {
         method: plan?.id ? "PUT" : "POST",
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, id: plan?.id }),
       });
-      mutate("/admin/plans");
+      onSave();
       onClose();
     } catch (error) {
       alert("Error al guardar el plan.");
@@ -81,13 +88,34 @@ const PlanForm: React.FC<{
 };
 
 const AdminPlans: React.FC = () => {
-  const { data: plans, loading, error } = useApi<Plan[]>("/admin/plans");
+  const {
+    data: plans,
+    loading,
+    error,
+    mutate,
+  } = useApi<Plan[]>("/admin/plans");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
 
   const handleOpenModal = (plan?: Plan) => {
     setSelectedPlan(plan || null);
     setIsModalOpen(true);
+  };
+
+  const handleDeletePlan = async (planId: string) => {
+    if (
+      window.confirm(
+        "¿Estás seguro de que querés eliminar este plan? Esta acción no se puede deshacer."
+      )
+    ) {
+      try {
+        await apiCall(`/admin/plans/${planId}`, { method: "DELETE" });
+        alert("Plan eliminado exitosamente.");
+        mutate();
+      } catch (err: any) {
+        alert(err.message || "Error al eliminar el plan.");
+      }
+    }
   };
 
   return (
@@ -114,26 +142,61 @@ const AdminPlans: React.FC = () => {
           Error al cargar los planes.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {plans?.map((plan) => (
-            <div key={plan.id} className="bg-white p-6 rounded-lg border">
+            <div
+              key={plan.id}
+              className="bg-white p-6 rounded-lg border shadow-sm"
+            >
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-xl font-bold">{plan.name}</h3>
-                  <p className="text-gray-600">{plan.description}</p>
+                  <h3 className="text-xl font-bold text-gray-800">
+                    {plan.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {plan.description}
+                  </p>
+                  <div className="flex items-center space-x-4 text-sm text-gray-600 mt-2">
+                    <span className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1" /> {plan.qualyLaps} qualy
+                    </span>
+                    <span className="flex items-center">
+                      <Flag className="h-4 w-4 mr-1" /> {plan.raceLaps} race
+                    </span>
+                  </div>
                 </div>
-                <Button size="sm" onClick={() => handleOpenModal(plan)}>
-                  Editar
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleOpenModal(plan)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => handleDeletePlan(plan.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
-              <div className="mt-4">
-                <h4 className="font-medium mb-2">Precios:</h4>
+              <div className="mt-4 pt-4 border-t">
+                <h4 className="font-medium mb-2 text-gray-700">
+                  Precios Activos:
+                </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {plan.prices?.map((price) => (
-                    <div key={price.id} className="bg-gray-50 p-2 rounded">
-                      <div className="capitalize text-sm">{price.method}</div>
-                      <div className="font-bold">
+                    <div
+                      key={price.id}
+                      className="bg-gray-50 p-3 rounded-lg text-center"
+                    >
+                      <div className="capitalize text-sm font-medium text-gray-600">
+                        {price.method}
+                      </div>
+                      <div className="font-bold text-lg text-gray-800">
                         {formatCurrency(price.amount / 100)}
                       </div>
                     </div>
@@ -150,7 +213,11 @@ const AdminPlans: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         title={selectedPlan ? "Editar Plan" : "Nuevo Plan"}
       >
-        <PlanForm plan={selectedPlan} onClose={() => setIsModalOpen(false)} />
+        <PlanForm
+          plan={selectedPlan}
+          onClose={() => setIsModalOpen(false)}
+          onSave={mutate}
+        />
       </Modal>
     </div>
   );

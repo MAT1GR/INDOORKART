@@ -6,110 +6,88 @@ import {
   generateBookingCode,
   sendConfirmationEmail,
 } from "../services/booking";
+import bcrypt from "bcryptjs";
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // ... (GET /dashboard, /bookings, etc., se mantienen igual)
 
-// Karts management
-router.get("/karts", async (req, res) => {
+// Users management
+router.get("/users", requireRole(["admin"]), async (req, res) => {
   try {
-    const { branchId } = req.query;
-
-    const karts = await prisma.kart.findMany({
-      where: branchId ? { branchId: branchId as string } : {},
-      orderBy: { number: "asc" },
+    const users = await prisma.user.findMany({
+      orderBy: { name: "asc" },
     });
-
-    res.json(karts);
+    res.json(users);
   } catch (error) {
-    console.error("Get karts error:", error);
+    console.error("Get users error:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
-// NUEVO ENDPOINT: Añadir un nuevo kart
-router.post("/karts", requireRole(["admin"]), async (req, res) => {
+// NUEVO ENDPOINT: Crear un usuario
+router.post("/users", requireRole(["admin"]), async (req, res) => {
   try {
-    const { branchId, number } = req.body;
+    const { name, email, password, role } = req.body;
 
-    // Validar que el número de kart no exista ya en la sucursal
-    const existingKart = await prisma.kart.findFirst({
-      where: { branchId, number },
-    });
-
-    if (existingKart) {
-      return res.status(409).json({ error: "El número de kart ya existe." });
+    if (!name || !email || !password || !role) {
+      return res
+        .status(400)
+        .json({ error: "Todos los campos son requeridos." });
     }
 
-    const newKart = await prisma.kart.create({
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(409).json({ error: "El email ya está en uso." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
       data: {
-        branchId,
-        number,
-        status: "ok",
+        name,
+        email,
+        password: hashedPassword,
+        role,
       },
     });
 
-    res.status(201).json(newKart);
+    res.status(201).json(newUser);
   } catch (error) {
-    console.error("Error al añadir kart:", error);
+    console.error("Error al crear usuario:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
-// NUEVO ENDPOINT: Eliminar un kart
-router.delete("/karts/:id", requireRole(["admin"]), async (req, res) => {
+// NUEVO ENDPOINT: Eliminar un usuario
+router.delete("/users/:id", requireRole(["admin"]), async (req, res) => {
   const { id } = req.params;
+  // @ts-ignore
+  const currentUserId = req.user.id;
+
+  if (id === currentUserId) {
+    return res
+      .status(400)
+      .json({ error: "No puedes eliminar tu propio usuario." });
+  }
+
   try {
-    // Verificar si el kart tiene reservas asociadas
-    const participantCount = await prisma.participant.count({
-      where: { kartId: id },
-    });
-
-    if (participantCount > 0) {
-      return res
-        .status(400)
-        .json({
-          error: "No se puede eliminar un kart con reservas asociadas.",
-        });
-    }
-
-    await prisma.kart.delete({ where: { id } });
-
-    res.status(200).json({ message: "Kart eliminado exitosamente." });
+    await prisma.user.delete({ where: { id } });
+    res.status(200).json({ message: "Usuario eliminado exitosamente." });
   } catch (error) {
-    console.error("Error al eliminar el kart:", error);
+    console.error("Error al eliminar el usuario:", error);
     res.status(500).json({ error: "Error interno del servidor." });
   }
 });
 
-// Update kart status
-router.patch("/karts/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, reason, fromDate, toDate } = req.body;
-
-    const kart = await prisma.kart.update({
-      where: { id },
-      data: { status, reason, fromDate, toDate },
-    });
-
-    res.json(kart);
-  } catch (error) {
-    console.error("Update kart error:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
 // ... (el resto de las rutas de admin.ts se mantienen igual)
-// ... (users, settings, reports, etc.)
+// ... (settings, reports, etc.)
 
 router.get("/dashboard", async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
 
-    // Today's bookings
     const todayBookings = await prisma.booking.count({
       where: {
         timeSlot: { date: today },
@@ -117,7 +95,6 @@ router.get("/dashboard", async (req, res) => {
       },
     });
 
-    // Today's revenue
     const todayRevenue = await prisma.booking.aggregate({
       where: {
         timeSlot: { date: today },
@@ -126,7 +103,6 @@ router.get("/dashboard", async (req, res) => {
       _sum: { total: true },
     });
 
-    // Occupancy rate
     const todaySlots = await prisma.timeSlot.count({
       where: { date: today, status: "ok" },
     });
@@ -145,7 +121,6 @@ router.get("/dashboard", async (req, res) => {
         ? Math.round(((occupiedSeats._sum.qty || 0) / totalCapacity) * 100)
         : 0;
 
-    // Upcoming bookings (next 2 hours)
     const twoHoursFromNow = new Date();
     twoHoursFromNow.setHours(twoHoursFromNow.getHours() + 2);
     const currentTime = new Date().toTimeString().slice(0, 5);
@@ -465,55 +440,6 @@ router.post("/timeslots/generate", requireRole(["admin"]), async (req, res) => {
   }
 });
 
-router.get("/plans", async (req, res) => {
-  try {
-    const plans = await prisma.plan.findMany({
-      include: {
-        prices: {
-          where: { active: true },
-          orderBy: { validFrom: "desc" },
-        },
-        _count: { select: { bookings: true } },
-      },
-      orderBy: { name: "asc" },
-    });
-
-    res.json(plans);
-  } catch (error) {
-    console.error("Get plans error:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-router.post("/plans", requireRole(["admin"]), async (req, res) => {
-  try {
-    const {
-      id,
-      name,
-      qualyLaps,
-      raceLaps,
-      description,
-      active = true,
-    } = req.body;
-
-    if (id) {
-      const plan = await prisma.plan.update({
-        where: { id },
-        data: { name, qualyLaps, raceLaps, description, active },
-      });
-      res.json(plan);
-    } else {
-      const plan = await prisma.plan.create({
-        data: { name, qualyLaps, raceLaps, description, active },
-      });
-      res.json(plan);
-    }
-  } catch (error) {
-    console.error("Save plan error:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
 router.post(
   "/plans/:planId/prices",
   requireRole(["admin"]),
@@ -547,14 +473,94 @@ router.post(
   }
 );
 
-router.get("/users", requireRole(["admin"]), async (req, res) => {
+router.delete("/plans/:id", requireRole(["admin"]), async (req, res) => {
+  const { id } = req.params;
   try {
-    const users = await prisma.user.findMany({
-      orderBy: { name: "asc" },
-    });
-    res.json(users);
+    const bookingCount = await prisma.booking.count({ where: { planId: id } });
+
+    if (bookingCount > 0) {
+      return res
+        .status(400)
+        .json({
+          error: "No se puede eliminar un plan con reservas asociadas.",
+        });
+    }
+
+    await prisma.planPrice.deleteMany({ where: { planId: id } });
+
+    await prisma.plan.delete({ where: { id } });
+
+    res.status(200).json({ message: "Plan eliminado exitosamente." });
   } catch (error) {
-    console.error("Get users error:", error);
+    console.error("Error al eliminar el plan:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
+
+router.post("/karts", requireRole(["admin"]), async (req, res) => {
+  try {
+    const { branchId, number } = req.body;
+
+    const existingKart = await prisma.kart.findFirst({
+      where: { branchId, number },
+    });
+
+    if (existingKart) {
+      return res.status(409).json({ error: "El número de kart ya existe." });
+    }
+
+    const newKart = await prisma.kart.create({
+      data: {
+        branchId,
+        number,
+        status: "ok",
+      },
+    });
+
+    res.status(201).json(newKart);
+  } catch (error) {
+    console.error("Error al añadir kart:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+router.delete("/karts/:id", requireRole(["admin"]), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const participantCount = await prisma.participant.count({
+      where: { kartId: id },
+    });
+
+    if (participantCount > 0) {
+      return res
+        .status(400)
+        .json({
+          error: "No se puede eliminar un kart con reservas asociadas.",
+        });
+    }
+
+    await prisma.kart.delete({ where: { id } });
+
+    res.status(200).json({ message: "Kart eliminado exitosamente." });
+  } catch (error) {
+    console.error("Error al eliminar el kart:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
+
+router.patch("/karts/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, reason, fromDate, toDate } = req.body;
+
+    const kart = await prisma.kart.update({
+      where: { id },
+      data: { status, reason, fromDate, toDate },
+    });
+
+    res.json(kart);
+  } catch (error) {
+    console.error("Update kart error:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
