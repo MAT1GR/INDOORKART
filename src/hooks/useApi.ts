@@ -1,30 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 interface ApiState<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
+  mutate: () => void;
 }
 
-export function useApi<T>(endpoint: string, options?: RequestInit): ApiState<T> {
+export function useApi<T>(
+  endpoint: string,
+  options?: RequestInit
+): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({
     data: null,
     loading: true,
     error: null,
+    mutate: () => {},
   });
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const fetchData = useCallback(
+    async (isRevalidation = false) => {
+      if (!isRevalidation) {
+        setState((prev) => ({ ...prev, loading: true, error: null }));
+      }
 
-    async function fetchData() {
+      const token = localStorage.getItem("auth_token");
+
       try {
-        setState(prev => ({ ...prev, loading: true, error: null }));
-        
         const response = await fetch(`${API_BASE}${endpoint}`, {
           ...options,
-          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+            ...options?.headers,
+          },
         });
 
         if (!response.ok) {
@@ -32,35 +43,36 @@ export function useApi<T>(endpoint: string, options?: RequestInit): ApiState<T> 
         }
 
         const data = await response.json();
-        setState({ data, loading: false, error: null });
+        setState((prev) => ({ ...prev, data, loading: false, error: null }));
       } catch (error) {
-        if (error instanceof Error && error.name !== 'AbortError') {
-          setState(prev => ({ 
-            ...prev, 
-            loading: false, 
-            error: error.message 
+        if (error instanceof Error && error.name !== "AbortError") {
+          setState((prev) => ({
+            ...prev,
+            loading: false,
+            error: error.message,
           }));
         }
       }
-    }
+    },
+    [endpoint, options]
+  );
 
+  useEffect(() => {
     fetchData();
+  }, [fetchData]);
 
-    return () => controller.abort();
-  }, [endpoint]);
-
-  return state;
+  return { ...state, mutate: () => fetchData(true) };
 }
 
 export async function apiCall(
-  endpoint: string, 
+  endpoint: string,
   options: RequestInit = {}
 ): Promise<any> {
-  const token = localStorage.getItem('auth_token');
-  
+  const token = localStorage.getItem("auth_token");
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
@@ -68,7 +80,9 @@ export async function apiCall(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
     throw new Error(error.error || `HTTP ${response.status}`);
   }
 

@@ -1,12 +1,11 @@
-import React from "react";
-import { useApi } from "../../hooks/useApi";
-import { Settings } from "../../types"; // Assuming Settings is defined in types
+import React, { useState, useEffect } from "react";
+import { useApi, apiCall } from "../../hooks/useApi";
 import Button from "../common/Button";
 import Input from "../common/Input";
 import LoadingSpinner from "../common/LoadingSpinner";
 import { Settings as SettingsIcon } from "lucide-react";
+import { mutate } from "swr";
 
-// This is a new interface that should be added to `src/types/index.ts`
 interface Setting {
   id: string;
   key: string;
@@ -14,12 +13,37 @@ interface Setting {
 }
 
 const AdminSettings: React.FC = () => {
-  // NOTE: This endpoint doesn't exist yet in the provided backend code.
   const {
     data: settings,
     loading,
     error,
   } = useApi<Setting[]>("/admin/settings");
+  const [localSettings, setLocalSettings] = useState<Setting[]>([]);
+
+  useEffect(() => {
+    if (settings) {
+      setLocalSettings(settings);
+    }
+  }, [settings]);
+
+  const handleSettingChange = (key: string, value: string) => {
+    setLocalSettings((prev) =>
+      prev.map((s) => (s.key === key ? { ...s, value } : s))
+    );
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      await apiCall("/admin/settings", {
+        method: "POST",
+        body: JSON.stringify(localSettings),
+      });
+      alert("Configuración guardada exitosamente");
+      mutate("/admin/settings");
+    } catch (error) {
+      alert("Error al guardar la configuración.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -36,20 +60,22 @@ const AdminSettings: React.FC = () => {
         </div>
       ) : error ? (
         <div className="p-12 text-center text-red-600">
-          Error al cargar la configuración (endpoint no implementado).
+          Error al cargar la configuración.
         </div>
       ) : (
         <div className="bg-white p-6 rounded-lg border space-y-4">
-          {settings?.map((setting) => (
+          {localSettings?.map((setting) => (
             <div key={setting.id}>
               <Input
                 label={setting.key.replace(/_/g, " ")}
                 value={setting.value}
-                disabled // Make this editable in a real implementation
+                onChange={(e) =>
+                  handleSettingChange(setting.key, e.target.value)
+                }
               />
             </div>
           ))}
-          <Button>Guardar Cambios</Button>
+          <Button onClick={handleSaveChanges}>Guardar Cambios</Button>
         </div>
       )}
     </div>

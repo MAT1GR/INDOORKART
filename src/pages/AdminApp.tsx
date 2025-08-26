@@ -9,6 +9,7 @@ import LoadingSpinner from "../components/common/LoadingSpinner";
 
 // Importa los nuevos componentes que crearemos
 import AdminBookings from "../components/admin/AdminBookings";
+import AdminBookingDetail from "../components/admin/AdminBookingDetail";
 import AdminTimeslots from "../components/admin/AdminTimeslots";
 import AdminKarts from "../components/admin/AdminKarts";
 import AdminPlans from "../components/admin/AdminPlans";
@@ -36,6 +37,7 @@ const AdminApp: React.FC = () => {
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="bookings" element={<AdminBookings />} />
+        <Route path="bookings/:code" element={<AdminBookingDetail />} />
         <Route path="timeslots" element={<AdminTimeslots />} />
         <Route path="karts" element={<AdminKarts />} />
         <Route path="plans" element={<AdminPlans />} />

@@ -15,7 +15,8 @@ model Blackout {
   dateRangeStart String
   dateRangeEnd  String
   reason        String
-  affectedSlots String? // JSON of affected slots
+  affectedSlots String?
+// JSON of affected slots
   createdAt     DateTime @default(now())
 
   branch Branch @relation(fields: [branchId], references: [id])
@@ -28,12 +29,14 @@ model Branch {
   name              String
   address           String
   phone             String
-  openDays          String      // JSON array of days [2,3,4,5,6,7] (Tue-Sun)
+  openDays      
+    String      // JSON array of days [2,3,4,5,6,7] (Tue-Sun)
   openHours         String      // JSON object {start: "17:00", end: "23:00"}
   seats             Int         @default(8)
   seatMap           String      // JSON array of seat configs
   circuitLastUpdate DateTime    @default(now())
-  createdAt         DateTime    @default(now())
+  createdAt    
+     DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
   timeSlots         TimeSlot[]
@@ -47,14 +50,15 @@ model Branch {
 model TimeSlot {
   id          String   @id @default(cuid())
   branchId    String
-  date        String   // YYYY-MM-DD format
+ 
+ date        String   // YYYY-MM-DD format
   startTime   String   // HH:MM format
   durationMin Int      @default(12)
   bufferMin   Int      @default(3)
   capacity    Int      @default(8)
   available   Int      @default(8)
   basePlanId  String?
-  status      String   @default("ok") // ok, cancelled, maintenance
+status      String   @default("ok") // ok, cancelled, maintenance
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -71,9 +75,11 @@ model Kart {
   branchId String
   number   Int
   status   String  @default("ok") // ok, oos (out of service)
-  reason   String?
+ 
+ reason   String?
   fromDate String? // YYYY-MM-DD
-  toDate   String? // YYYY-MM-DD
+  toDate   String?
+// YYYY-MM-DD
 
   branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
   participants Participant[]
@@ -99,14 +105,16 @@ model Plan {
 }
 
 model PlanPrice {
-  id           String   @id @default(cuid())
+  id 
+          String   @id @default(cuid())
   planId       String
   method       String   // cash, transfer, mp, card
   amount       Int      // in cents
-  surchargePct Float?   @default(0)
+  surchargePct Float?
+@default(0)
   validFrom    DateTime
   validTo      DateTime?
-  active       Boolean  @default(true)
+active       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
@@ -120,20 +128,22 @@ model Booking {
   branchId      String
   timeSlotId    String
   planId        String
-  seats         String   // JSON array of kart numbers
+  seats         String   
+// JSON array of kart numbers
   qty           Int
   customerName  String
   email         String
   phone         String
   notes         String?
-  status        String   @default("pending") // pending, confirmed, cancelled, noShow
+status        String   @default("pending") // pending, confirmed, cancelled, noShow
   paymentStatus String   @default("unpaid")  // unpaid, deposit, paid
   depositPct    Int      @default(50)
   subtotal      Int      // in cents
   discount      Int      @default(0)
   total         Int      // in cents
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt  
+   DateTime @updatedAt
 
   branch       Branch        @relation(fields: [branchId], references: [id])
   timeSlot     TimeSlot      @relation(fields: [timeSlotId], references: [id])
@@ -147,10 +157,11 @@ model Booking {
 model Participant {
   id        String   @id @default(cuid())
   bookingId String
-  kartId    String
+  kartId   
+ String
   name      String
   dni       String?
-  isHolder  Boolean  @default(false)
+isHolder  Boolean  @default(false)
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   kart    Kart    @relation(fields: [kartId], references: [id])
@@ -164,7 +175,8 @@ model Payment {
   method      String   // cash, transfer, mp, card
   amount      Int      // in cents
   status      String   @default("pending") // pending, completed, failed, refunded
-  externalRef String?
+  
+externalRef String?
   metadata    String?  // JSON with additional payment info
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -187,7 +199,8 @@ model Hold {
   @@map("holds")
 }
 
-model User {
+model 
+User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
@@ -209,15 +222,16 @@ model Settings {
 }
 
 model Promo {
-  id        String    @id @default(cuid())
+  id      
+  String    @id @default(cuid())
   type      String    // valley, coupon
   name      String
   rules     String    // JSON with rules
   validFrom DateTime
   validTo   DateTime?
-  active    Boolean   @default(true)
+active    Boolean   @default(true)
   maxUses   Int?
-  usedCount Int       @default(0)
+usedCount Int       @default(0)
   createdAt DateTime  @default(now())
 
   @@map("promos")

@@ -1,5 +1,6 @@
 // mat1gr/indoorkart/INDOORKART-develop/src/components/admin/AdminBookings.tsx
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useApi, apiCall } from "../../hooks/useApi";
 import { Booking } from "../../types";
 import {
@@ -156,9 +157,11 @@ const AdminBookings: React.FC = () => {
                     {formatCurrency(booking.total / 100)}
                   </td>
                   <td className="px-6 py-4">
-                    <Button size="sm" variant="secondary">
-                      Ver
-                    </Button>
+                    <Link to={`/admin/bookings/${booking.code}`}>
+                      <Button size="sm" variant="secondary">
+                        Ver
+                      </Button>
+                    </Link>
                   </td>
                 </tr>
               ))}

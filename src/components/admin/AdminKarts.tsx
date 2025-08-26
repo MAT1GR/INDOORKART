@@ -6,7 +6,12 @@ import LoadingSpinner from "../common/LoadingSpinner";
 import { Car, Wrench } from "lucide-react";
 
 const AdminKarts: React.FC = () => {
-  const { data: karts, loading, error } = useApi<Kart[]>("/admin/karts");
+  const {
+    data: karts,
+    loading,
+    error,
+    mutate,
+  } = useApi<Kart[]>("/admin/karts");
   const [editingKart, setEditingKart] = useState<Kart | null>(null);
 
   const handleStatusChange = async (kart: Kart, status: "ok" | "oos") => {
@@ -15,7 +20,7 @@ const AdminKarts: React.FC = () => {
         method: "PATCH",
         body: JSON.stringify({ status }),
       });
-      // Ideally, refetch karts
+      mutate();
     } catch (error) {
       alert("Error al actualizar el estado del kart.");
     }

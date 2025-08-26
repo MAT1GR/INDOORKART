@@ -12,11 +12,14 @@ const AdminTimeslots: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(
     format(new Date(), "yyyy-MM-dd")
   );
+  const { data: branch } = useApi<any>("/public/branch");
   const {
     data: timeSlots,
     loading,
     error,
-  } = useApi<TimeSlot[]>(`/admin/timeslots?date=${selectedDate}`);
+  } = useApi<TimeSlot[]>(
+    `/admin/timeslots?date=${selectedDate}&branchId=${branch?.id}`
+  );
 
   const handleGenerateSlots = async () => {
     const startDate = prompt(
@@ -28,12 +31,12 @@ const AdminTimeslots: React.FC = () => {
       startDate || selectedDate
     );
 
-    if (startDate && endDate) {
+    if (startDate && endDate && branch?.id) {
       try {
         const response = await apiCall("/admin/timeslots/generate", {
           method: "POST",
           body: JSON.stringify({
-            branchId: "clxk6w5h20000v55gt9f8ae3g", // Hardcoded branchId for simplicity
+            branchId: branch.id,
             startDate,
             endDate,
           }),

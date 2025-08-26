@@ -369,6 +369,50 @@ router.patch("/karts/:id", async (req, res) => {
   }
 });
 
+// Users management
+router.get("/users", requireRole(["admin"]), async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { name: "asc" },
+    });
+    res.json(users);
+  } catch (error) {
+    console.error("Get users error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// Settings management
+router.get("/settings", requireRole(["admin"]), async (req, res) => {
+  try {
+    const settings = await prisma.settings.findMany();
+    res.json(settings);
+  } catch (error) {
+    console.error("Get settings error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+router.post("/settings", requireRole(["admin"]), async (req, res) => {
+  try {
+    const settings: { key: string; value: string }[] = req.body;
+
+    await Promise.all(
+      settings.map((setting) =>
+        prisma.settings.update({
+          where: { key: setting.key },
+          data: { value: setting.value },
+        })
+      )
+    );
+
+    res.json({ message: "Configuración guardada exitosamente" });
+  } catch (error) {
+    console.error("Save settings error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
 // Reports
 router.get("/reports/revenue", async (req, res) => {
   try {
