@@ -10,7 +10,7 @@ interface ApiState<T> {
 }
 
 export function useApi<T>(
-  endpoint: string,
+  endpoint: string | null,
   options?: RequestInit
 ): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({
@@ -22,6 +22,12 @@ export function useApi<T>(
 
   const fetchData = useCallback(
     async (isRevalidation = false) => {
+      // Si el endpoint es nulo, no hacemos nada.
+      if (!endpoint) {
+        setState((prev) => ({ ...prev, loading: false, data: null }));
+        return;
+      }
+
       if (!isRevalidation) {
         setState((prev) => ({ ...prev, loading: true, error: null }));
       }

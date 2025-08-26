@@ -2,11 +2,170 @@ import express from "express";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { requireRole } from "../middleware/auth";
 import { format, startOfDay, endOfDay } from "date-fns";
+import {
+  generateBookingCode,
+  sendConfirmationEmail,
+} from "../services/booking";
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Dashboard stats
+// ... (las otras rutas como /dashboard, /timeslots, etc. se mantienen igual)
+
+// Bookings management
+router.get("/bookings", async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search, status, date, planId } = req.query;
+
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { code: { contains: search as string } },
+        { customerName: { contains: search as string } },
+        { email: { contains: search as string } },
+        { phone: { contains: search as string } },
+      ];
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (planId) {
+      where.planId = planId;
+    }
+
+    if (date) {
+      where.timeSlot = { date: date as string };
+    }
+
+    const [bookings, total] = await Promise.all([
+      prisma.booking.findMany({
+        where,
+        include: {
+          branch: true,
+          timeSlot: true,
+          plan: true,
+          payments: true,
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
+      }),
+      prisma.booking.count({ where }),
+    ]);
+
+    res.json({
+      bookings,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get bookings error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// NUEVO ENDPOINT: Crear una reserva desde el panel de admin
+router.post("/bookings", requireRole(["admin", "staff"]), async (req, res) => {
+  try {
+    const {
+      branchId,
+      timeSlotId,
+      planId,
+      seats,
+      customerName,
+      email,
+      phone,
+      notes,
+      status, // Admin puede setear el estado
+      paymentStatus, // Admin puede setear el estado del pago
+      total,
+    } = req.body;
+
+    // Validar campos requeridos
+    if (
+      !branchId ||
+      !timeSlotId ||
+      !planId ||
+      !seats ||
+      !customerName ||
+      !email ||
+      !phone ||
+      !status ||
+      !paymentStatus
+    ) {
+      return res.status(400).json({ error: "Faltan campos requeridos" });
+    }
+
+    const code = generateBookingCode();
+
+    const booking = await prisma.$transaction(async (tx) => {
+      // 1. Crear la reserva
+      const newBooking = await tx.booking.create({
+        data: {
+          code,
+          branchId,
+          timeSlotId,
+          planId,
+          seats: JSON.stringify(seats),
+          qty: seats.length,
+          customerName,
+          email,
+          phone,
+          notes: notes || "",
+          status,
+          paymentStatus,
+          subtotal: total,
+          total,
+        },
+        include: { branch: true, timeSlot: true, plan: true },
+      });
+
+      // 2. Actualizar la disponibilidad del horario
+      const updatedTimeSlot = await tx.timeSlot.update({
+        where: { id: timeSlotId },
+        data: { available: { decrement: seats.length } },
+      });
+
+      // Validar que no quede disponibilidad negativa
+      if (updatedTimeSlot.available < 0) {
+        throw new Error(
+          "No hay suficiente disponibilidad en el horario seleccionado."
+        );
+      }
+
+      return newBooking;
+    });
+
+    // Enviar email de confirmación (fuera de la transacción)
+    try {
+      await sendConfirmationEmail(booking);
+    } catch (emailError) {
+      console.error(
+        "Error al enviar email, pero la reserva fue creada:",
+        emailError
+      );
+    }
+
+    res.status(201).json(booking);
+  } catch (error) {
+    console.error("Error al crear la reserva desde admin:", error);
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  }
+});
+
+// ... (el resto de las rutas de admin.ts se mantienen igual)
+// ... (timeslots, karts, plans, users, settings, reports)
 router.get("/dashboard", async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -79,7 +238,6 @@ router.get("/dashboard", async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
-
 // Bookings management
 router.get("/bookings", async (req, res) => {
   try {
@@ -140,6 +298,7 @@ router.get("/bookings", async (req, res) => {
 });
 
 // Time slots management
+
 router.get("/timeslots", async (req, res) => {
   try {
     const { date, branchId } = req.query;
@@ -245,7 +404,6 @@ router.post("/timeslots/generate", requireRole(["admin"]), async (req, res) => {
   }
 });
 
-// Plans management
 router.get("/plans", async (req, res) => {
   try {
     const plans = await prisma.plan.findMany({
@@ -266,7 +424,6 @@ router.get("/plans", async (req, res) => {
   }
 });
 
-// Create/update plan
 router.post("/plans", requireRole(["admin"]), async (req, res) => {
   try {
     const {
@@ -279,14 +436,12 @@ router.post("/plans", requireRole(["admin"]), async (req, res) => {
     } = req.body;
 
     if (id) {
-      // Update existing plan
       const plan = await prisma.plan.update({
         where: { id },
         data: { name, qualyLaps, raceLaps, description, active },
       });
       res.json(plan);
     } else {
-      // Create new plan
       const plan = await prisma.plan.create({
         data: { name, qualyLaps, raceLaps, description, active },
       });
@@ -298,7 +453,6 @@ router.post("/plans", requireRole(["admin"]), async (req, res) => {
   }
 });
 
-// Plan prices management
 router.post(
   "/plans/:planId/prices",
   requireRole(["admin"]),
@@ -307,18 +461,16 @@ router.post(
       const { planId } = req.params;
       const { method, amount, surchargePct, validFrom, validTo } = req.body;
 
-      // Deactivate old prices for this method
       await prisma.planPrice.updateMany({
         where: { planId, method, active: true },
         data: { active: false },
       });
 
-      // Create new price
       const price = await prisma.planPrice.create({
         data: {
           planId,
           method,
-          amount: Math.round(amount * 100), // Convert to cents
+          amount: Math.round(amount * 100),
           surchargePct,
           validFrom: new Date(validFrom),
           validTo: validTo ? new Date(validTo) : null,
@@ -334,7 +486,6 @@ router.post(
   }
 );
 
-// Karts management
 router.get("/karts", async (req, res) => {
   try {
     const { branchId } = req.query;
@@ -351,7 +502,6 @@ router.get("/karts", async (req, res) => {
   }
 });
 
-// Update kart status
 router.patch("/karts/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -369,7 +519,6 @@ router.patch("/karts/:id", async (req, res) => {
   }
 });
 
-// Users management
 router.get("/users", requireRole(["admin"]), async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -382,7 +531,6 @@ router.get("/users", requireRole(["admin"]), async (req, res) => {
   }
 });
 
-// Settings management
 router.get("/settings", requireRole(["admin"]), async (req, res) => {
   try {
     const settings = await prisma.settings.findMany();
@@ -413,7 +561,6 @@ router.post("/settings", requireRole(["admin"]), async (req, res) => {
   }
 });
 
-// Reports
 router.get("/reports/revenue", async (req, res) => {
   try {
     const { startDate, endDate, groupBy = "day" } = req.query;
@@ -435,9 +582,8 @@ router.get("/reports/revenue", async (req, res) => {
       },
     });
 
-    // Group revenue by period
     const revenueByPeriod = bookings.reduce((acc, booking) => {
-      const key = booking.timeSlot.date; // Could be enhanced for week/month grouping
+      const key = booking.timeSlot.date;
 
       if (!acc[key]) {
         acc[key] = {
@@ -454,7 +600,6 @@ router.get("/reports/revenue", async (req, res) => {
       acc[key].total += booking.total;
       acc[key].bookings += 1;
 
-      // Group by payment method
       booking.payments.forEach((payment) => {
         if (payment.status === "completed") {
           acc[key][payment.method as keyof (typeof acc)[string]] +=
@@ -467,7 +612,7 @@ router.get("/reports/revenue", async (req, res) => {
 
     const report = Object.values(revenueByPeriod).map((period) => ({
       ...period,
-      total: period.total / 100, // Convert from cents
+      total: period.total / 100,
       cash: period.cash / 100,
       transfer: period.transfer / 100,
       mp: period.mp / 100,

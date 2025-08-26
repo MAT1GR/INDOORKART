@@ -10,6 +10,7 @@ import LoadingSpinner from "../components/common/LoadingSpinner";
 // Importa los nuevos componentes que crearemos
 import AdminBookings from "../components/admin/AdminBookings";
 import AdminBookingDetail from "../components/admin/AdminBookingDetail";
+import AdminNewBooking from "../components/admin/AdminNewBooking"; // Importa el nuevo componente from "src/components/admin/AdminNewBooking".
 import AdminTimeslots from "../components/admin/AdminTimeslots";
 import AdminKarts from "../components/admin/AdminKarts";
 import AdminPlans from "../components/admin/AdminPlans";
