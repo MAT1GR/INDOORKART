@@ -1,18 +1,23 @@
 import React, { useState } from "react";
 import { useApi, apiCall } from "../../hooks/useApi";
-import { Kart } from "../../types";
+import { Kart, Branch } from "../../types";
 import Button from "../common/Button";
+import Input from "../common/Input";
 import LoadingSpinner from "../common/LoadingSpinner";
-import { Car, Wrench } from "lucide-react";
+import Modal from "../common/Modal";
+import { Car, Wrench, PlusCircle, Trash2 } from "lucide-react";
 
 const AdminKarts: React.FC = () => {
+  const { data: branch } = useApi<Branch>("/public/branch");
   const {
     data: karts,
     loading,
     error,
     mutate,
-  } = useApi<Kart[]>("/admin/karts");
-  const [editingKart, setEditingKart] = useState<Kart | null>(null);
+  } = useApi<Kart[]>(branch ? `/admin/karts?branchId=${branch.id}` : null);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newKartNumber, setNewKartNumber] = useState<number | undefined>();
 
   const handleStatusChange = async (kart: Kart, status: "ok" | "oos") => {
     try {
@@ -26,13 +31,56 @@ const AdminKarts: React.FC = () => {
     }
   };
 
+  const handleAddKart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKartNumber || !branch) return;
+    try {
+      await apiCall("/admin/karts", {
+        method: "POST",
+        body: JSON.stringify({
+          branchId: branch.id,
+          number: newKartNumber,
+        }),
+      });
+      mutate();
+      setIsModalOpen(false);
+      setNewKartNumber(undefined);
+    } catch (error) {
+      alert("Error al añadir el kart. Puede que el número ya exista.");
+    }
+  };
+
+  const handleDeleteKart = async (kartId: string) => {
+    if (
+      window.confirm(
+        "¿Estás seguro de que querés eliminar este kart? Esta acción no se puede deshacer."
+      )
+    ) {
+      try {
+        await apiCall(`/admin/karts/${kartId}`, {
+          method: "DELETE",
+        });
+        alert("Kart eliminado exitosamente.");
+        mutate();
+      } catch (err: any) {
+        alert(err.message || "Error al eliminar el kart.");
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Gestión de Karts</h1>
-        <p className="text-gray-600">
-          Administrá el estado y la disponibilidad de cada kart.
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Karts</h1>
+          <p className="text-gray-600">
+            Administrá el estado y la disponibilidad de cada kart.
+          </p>
+        </div>
+        <Button onClick={() => setIsModalOpen(true)}>
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Agregar Kart
+        </Button>
       </div>
 
       {loading ? (
@@ -48,12 +96,18 @@ const AdminKarts: React.FC = () => {
           {karts?.map((kart) => (
             <div
               key={kart.id}
-              className={`p-6 rounded-lg border ${
+              className={`p-6 rounded-lg border relative ${
                 kart.status === "ok"
                   ? "bg-green-50 border-green-200"
                   : "bg-red-50 border-red-200"
               }`}
             >
+              <button
+                onClick={() => handleDeleteKart(kart.id)}
+                className="absolute top-2 right-2 p-1 bg-red-100 rounded-full hover:bg-red-200"
+              >
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </button>
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-bold">Kart {kart.number}</h3>
                 <Car
@@ -90,6 +144,24 @@ const AdminKarts: React.FC = () => {
           ))}
         </div>
       )}
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Agregar Nuevo Kart"
+      >
+        <form onSubmit={handleAddKart} className="space-y-4">
+          <Input
+            label="Número del Kart"
+            type="number"
+            value={newKartNumber || ""}
+            onChange={(e) => setNewKartNumber(parseInt(e.target.value))}
+            required
+            placeholder="Ej: 9"
+          />
+          <Button type="submit">Agregar Kart</Button>
+        </form>
+      </Modal>
     </div>
   );
 };

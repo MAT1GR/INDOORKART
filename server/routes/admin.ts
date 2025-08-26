@@ -10,162 +10,101 @@ import {
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// ... (las otras rutas como /dashboard, /timeslots, etc. se mantienen igual)
+// ... (GET /dashboard, /bookings, etc., se mantienen igual)
 
-// Bookings management
-router.get("/bookings", async (req, res) => {
+// Karts management
+router.get("/karts", async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, status, date, planId } = req.query;
+    const { branchId } = req.query;
 
-    const where: any = {};
-
-    if (search) {
-      where.OR = [
-        { code: { contains: search as string } },
-        { customerName: { contains: search as string } },
-        { email: { contains: search as string } },
-        { phone: { contains: search as string } },
-      ];
-    }
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (planId) {
-      where.planId = planId;
-    }
-
-    if (date) {
-      where.timeSlot = { date: date as string };
-    }
-
-    const [bookings, total] = await Promise.all([
-      prisma.booking.findMany({
-        where,
-        include: {
-          branch: true,
-          timeSlot: true,
-          plan: true,
-          payments: true,
-        },
-        orderBy: { createdAt: "desc" },
-        skip: (Number(page) - 1) * Number(limit),
-        take: Number(limit),
-      }),
-      prisma.booking.count({ where }),
-    ]);
-
-    res.json({
-      bookings,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / Number(limit)),
-      },
+    const karts = await prisma.kart.findMany({
+      where: branchId ? { branchId: branchId as string } : {},
+      orderBy: { number: "asc" },
     });
+
+    res.json(karts);
   } catch (error) {
-    console.error("Get bookings error:", error);
+    console.error("Get karts error:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
-// NUEVO ENDPOINT: Crear una reserva desde el panel de admin
-router.post("/bookings", requireRole(["admin", "staff"]), async (req, res) => {
+// NUEVO ENDPOINT: Añadir un nuevo kart
+router.post("/karts", requireRole(["admin"]), async (req, res) => {
   try {
-    const {
-      branchId,
-      timeSlotId,
-      planId,
-      seats,
-      customerName,
-      email,
-      phone,
-      notes,
-      status, // Admin puede setear el estado
-      paymentStatus, // Admin puede setear el estado del pago
-      total,
-    } = req.body;
+    const { branchId, number } = req.body;
 
-    // Validar campos requeridos
-    if (
-      !branchId ||
-      !timeSlotId ||
-      !planId ||
-      !seats ||
-      !customerName ||
-      !email ||
-      !phone ||
-      !status ||
-      !paymentStatus
-    ) {
-      return res.status(400).json({ error: "Faltan campos requeridos" });
-    }
-
-    const code = generateBookingCode();
-
-    const booking = await prisma.$transaction(async (tx) => {
-      // 1. Crear la reserva
-      const newBooking = await tx.booking.create({
-        data: {
-          code,
-          branchId,
-          timeSlotId,
-          planId,
-          seats: JSON.stringify(seats),
-          qty: seats.length,
-          customerName,
-          email,
-          phone,
-          notes: notes || "",
-          status,
-          paymentStatus,
-          subtotal: total,
-          total,
-        },
-        include: { branch: true, timeSlot: true, plan: true },
-      });
-
-      // 2. Actualizar la disponibilidad del horario
-      const updatedTimeSlot = await tx.timeSlot.update({
-        where: { id: timeSlotId },
-        data: { available: { decrement: seats.length } },
-      });
-
-      // Validar que no quede disponibilidad negativa
-      if (updatedTimeSlot.available < 0) {
-        throw new Error(
-          "No hay suficiente disponibilidad en el horario seleccionado."
-        );
-      }
-
-      return newBooking;
+    // Validar que el número de kart no exista ya en la sucursal
+    const existingKart = await prisma.kart.findFirst({
+      where: { branchId, number },
     });
 
-    // Enviar email de confirmación (fuera de la transacción)
-    try {
-      await sendConfirmationEmail(booking);
-    } catch (emailError) {
-      console.error(
-        "Error al enviar email, pero la reserva fue creada:",
-        emailError
-      );
+    if (existingKart) {
+      return res.status(409).json({ error: "El número de kart ya existe." });
     }
 
-    res.status(201).json(booking);
+    const newKart = await prisma.kart.create({
+      data: {
+        branchId,
+        number,
+        status: "ok",
+      },
+    });
+
+    res.status(201).json(newKart);
   } catch (error) {
-    console.error("Error al crear la reserva desde admin:", error);
-    if (error instanceof Error) {
-      res.status(500).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: "Error interno del servidor" });
+    console.error("Error al añadir kart:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// NUEVO ENDPOINT: Eliminar un kart
+router.delete("/karts/:id", requireRole(["admin"]), async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Verificar si el kart tiene reservas asociadas
+    const participantCount = await prisma.participant.count({
+      where: { kartId: id },
+    });
+
+    if (participantCount > 0) {
+      return res
+        .status(400)
+        .json({
+          error: "No se puede eliminar un kart con reservas asociadas.",
+        });
     }
+
+    await prisma.kart.delete({ where: { id } });
+
+    res.status(200).json({ message: "Kart eliminado exitosamente." });
+  } catch (error) {
+    console.error("Error al eliminar el kart:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+});
+
+// Update kart status
+router.patch("/karts/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, reason, fromDate, toDate } = req.body;
+
+    const kart = await prisma.kart.update({
+      where: { id },
+      data: { status, reason, fromDate, toDate },
+    });
+
+    res.json(kart);
+  } catch (error) {
+    console.error("Update kart error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 // ... (el resto de las rutas de admin.ts se mantienen igual)
-// ... (timeslots, karts, plans, users, settings, reports)
+// ... (users, settings, reports, etc.)
+
 router.get("/dashboard", async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
@@ -238,7 +177,7 @@ router.get("/dashboard", async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
-// Bookings management
+
 router.get("/bookings", async (req, res) => {
   try {
     const { page = 1, limit = 20, search, status, date, planId } = req.query;
@@ -297,7 +236,129 @@ router.get("/bookings", async (req, res) => {
   }
 });
 
-// Time slots management
+router.post("/bookings", requireRole(["admin", "staff"]), async (req, res) => {
+  try {
+    const {
+      branchId,
+      timeSlotId,
+      planId,
+      seats,
+      customerName,
+      email,
+      phone,
+      notes,
+      status,
+      paymentStatus,
+      total,
+    } = req.body;
+
+    if (
+      !branchId ||
+      !timeSlotId ||
+      !planId ||
+      !seats ||
+      !customerName ||
+      !email ||
+      !phone ||
+      !status ||
+      !paymentStatus
+    ) {
+      return res.status(400).json({ error: "Faltan campos requeridos" });
+    }
+
+    const code = generateBookingCode();
+
+    const booking = await prisma.$transaction(async (tx) => {
+      const newBooking = await tx.booking.create({
+        data: {
+          code,
+          branchId,
+          timeSlotId,
+          planId,
+          seats: JSON.stringify(seats),
+          qty: seats.length,
+          customerName,
+          email,
+          phone,
+          notes: notes || "",
+          status,
+          paymentStatus,
+          subtotal: total,
+          total,
+        },
+        include: { branch: true, timeSlot: true, plan: true },
+      });
+
+      const updatedTimeSlot = await tx.timeSlot.update({
+        where: { id: timeSlotId },
+        data: { available: { decrement: seats.length } },
+      });
+
+      if (updatedTimeSlot.available < 0) {
+        throw new Error(
+          "No hay suficiente disponibilidad en el horario seleccionado."
+        );
+      }
+
+      return newBooking;
+    });
+
+    try {
+      await sendConfirmationEmail(booking);
+    } catch (emailError) {
+      console.error(
+        "Error al enviar email, pero la reserva fue creada:",
+        emailError
+      );
+    }
+
+    res.status(201).json(booking);
+  } catch (error) {
+    console.error("Error al crear la reserva desde admin:", error);
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  }
+});
+
+router.delete(
+  "/bookings/:id",
+  requireRole(["admin", "staff"]),
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      const bookingToDelete = await prisma.booking.findUnique({
+        where: { id },
+      });
+
+      if (!bookingToDelete) {
+        return res.status(404).json({ error: "Reserva no encontrada" });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.timeSlot.update({
+          where: { id: bookingToDelete.timeSlotId },
+          data: { available: { increment: bookingToDelete.qty } },
+        });
+
+        await tx.payment.deleteMany({
+          where: { bookingId: id },
+        });
+
+        await tx.booking.delete({
+          where: { id },
+        });
+      });
+
+      res.status(200).json({ message: "Reserva eliminada exitosamente." });
+    } catch (error) {
+      console.error("Error al eliminar la reserva:", error);
+      res.status(500).json({ error: "Error interno del servidor." });
+    }
+  }
+);
 
 router.get("/timeslots", async (req, res) => {
   try {
@@ -485,39 +546,6 @@ router.post(
     }
   }
 );
-
-router.get("/karts", async (req, res) => {
-  try {
-    const { branchId } = req.query;
-
-    const karts = await prisma.kart.findMany({
-      where: branchId ? { branchId: branchId as string } : {},
-      orderBy: { number: "asc" },
-    });
-
-    res.json(karts);
-  } catch (error) {
-    console.error("Get karts error:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-router.patch("/karts/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, reason, fromDate, toDate } = req.body;
-
-    const kart = await prisma.kart.update({
-      where: { id },
-      data: { status, reason, fromDate, toDate },
-    });
-
-    res.json(kart);
-  } catch (error) {
-    console.error("Update kart error:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
 
 router.get("/users", requireRole(["admin"]), async (req, res) => {
   try {

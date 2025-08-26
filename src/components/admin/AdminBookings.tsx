@@ -12,18 +12,19 @@ import {
 import Input from "../common/Input";
 import Button from "../common/Button";
 import LoadingSpinner from "../common/LoadingSpinner";
-import AdminNewBooking from "./AdminNewBooking"; // Importamos el modal
+import AdminNewBooking from "./AdminNewBooking";
 import {
   Search,
   SlidersHorizontal,
   CalendarDays,
   PlusCircle,
+  Trash2,
 } from "lucide-react";
 
 const AdminBookings: React.FC = () => {
   const [filters, setFilters] = useState({ search: "", status: "", date: "" });
   const [page, setPage] = useState(1);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false); // Estado para el modal
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const query = new URLSearchParams({
     page: page.toString(),
@@ -43,6 +44,25 @@ const AdminBookings: React.FC = () => {
     setPage(1);
   };
 
+  const handleDelete = async (bookingId: string) => {
+    if (
+      window.confirm(
+        "¿Estás seguro de que querés eliminar esta reserva? Esta acción no se puede deshacer."
+      )
+    ) {
+      try {
+        await apiCall(`/admin/bookings/${bookingId}`, {
+          method: "DELETE",
+        });
+        alert("Reserva eliminada exitosamente.");
+        mutate(); // Recarga los datos
+      } catch (err) {
+        alert("Error al eliminar la reserva.");
+        console.error(err);
+      }
+    }
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -55,7 +75,6 @@ const AdminBookings: React.FC = () => {
               Buscá, filtrá y administrá todas las reservas.
             </p>
           </div>
-          {/* Botón para abrir el modal de nueva reserva */}
           <Button onClick={() => setIsBookingModalOpen(true)}>
             <PlusCircle className="h-4 w-4 mr-2" />
             Nueva Reserva
@@ -138,10 +157,11 @@ const AdminBookings: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">{booking.customerName}</td>
                     <td className="px-6 py-4">
-                      {formatDateTime(
-                        booking.timeSlot!.date,
-                        booking.timeSlot!.startTime
-                      )}
+                      {booking.timeSlot &&
+                        formatDateTime(
+                          booking.timeSlot.date,
+                          booking.timeSlot.startTime
+                        )}
                     </td>
                     <td className="px-6 py-4">{booking.plan?.name}</td>
                     <td className="px-6 py-4">
@@ -160,12 +180,19 @@ const AdminBookings: React.FC = () => {
                     <td className="px-6 py-4">
                       {formatCurrency(booking.total / 100)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 flex items-center space-x-2">
                       <Link to={`/admin/bookings/${booking.code}`}>
                         <Button size="sm" variant="secondary">
                           Ver
                         </Button>
                       </Link>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleDelete(booking.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -193,12 +220,11 @@ const AdminBookings: React.FC = () => {
         )}
       </div>
 
-      {/* Modal para crear una nueva reserva */}
       <AdminNewBooking
         isOpen={isBookingModalOpen}
         onClose={() => {
           setIsBookingModalOpen(false);
-          mutate(); // Recarga la lista de reservas cuando se cierra el modal
+          mutate();
         }}
       />
     </>
