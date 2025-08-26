@@ -1,14 +1,14 @@
-import express from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || "rosario-indoor-kart-secret-2024";
+const JWT_SECRET = process.env.JWT_SECRET || 'rosario-indoor-kart-secret-2024';
 
 // Login
-router.post("/login", async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -16,14 +16,14 @@ router.post("/login", async (req, res) => {
       where: { email, active: true },
     });
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: "Credenciales inválidas" });
+    if (!user || !await bcrypt.compare(password, user.password)) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       JWT_SECRET,
-      { expiresIn: "24h" }
+      { expiresIn: '24h' }
     );
 
     res.json({
@@ -36,13 +36,13 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // Refresh token
-router.post("/refresh", async (req, res) => {
+router.post('/refresh', async (req, res) => {
   try {
     const { token } = req.body;
 
@@ -52,18 +52,18 @@ router.post("/refresh", async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ error: "Usuario no encontrado" });
+      return res.status(401).json({ error: 'Usuario no encontrado' });
     }
 
     const newToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       JWT_SECRET,
-      { expiresIn: "24h" }
+      { expiresIn: '24h' }
     );
 
     res.json({ token: newToken });
   } catch (error) {
-    res.status(401).json({ error: "Token inválido" });
+    res.status(401).json({ error: 'Token inválido' });
   }
 });
 

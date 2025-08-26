@@ -12,7 +12,7 @@ import { formatCurrency, formatDate, formatTime } from "../../utils/formatters";
 import Input from "../common/Input";
 import Button from "../common/Button";
 
-interface BookingFormProps {
+export interface BookingFormProps {
   plan: Plan;
   seats: number[];
   timeSlot: TimeSlot;

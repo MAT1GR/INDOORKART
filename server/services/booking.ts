@@ -1,7 +1,5 @@
 import nodemailer from "nodemailer";
 import { PrismaClient } from "@prisma/client";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 
 const prisma = new PrismaClient();
 
@@ -28,7 +26,6 @@ export async function sendConfirmationEmail(booking: any) {
 
   const seats = JSON.parse(booking.seats) as number[];
   const seatsList = seats.join(", ");
-  const bookingDate = new Date(booking.timeSlot.date + "T00:00:00");
 
   const html = `
     <!DOCTYPE html>
@@ -36,15 +33,14 @@ export async function sendConfirmationEmail(booking: any) {
     <head>
       <meta charset="utf-8">
       <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
         .header { background: linear-gradient(135deg, #E3362C, #F47600); color: white; padding: 20px; text-align: center; }
-        .content { background: white; padding: 20px; }
+        .content { background: white; padding: 20px; border: 1px solid #ddd; }
         .booking-details { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; }
         .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
         .qr-code { text-align: center; margin: 20px 0; }
         .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin: 15px 0; }
-        strong { color: #000; }
       </style>
     </head>
     <body>
@@ -62,11 +58,7 @@ export async function sendConfirmationEmail(booking: any) {
           <div class="booking-details">
             <h3>📋 Detalles de la Reserva</h3>
             <p><strong>Código:</strong> ${booking.code}</p>
-            <p><strong>Fecha:</strong> ${format(
-              bookingDate,
-              "EEEE, d 'de' LLLL 'de' yyyy",
-              { locale: es }
-            )}</p>
+            <p><strong>Fecha:</strong> ${booking.timeSlot.date}</p>
             <p><strong>Horario:</strong> ${booking.timeSlot.startTime}</p>
             <p><strong>Plan:</strong> ${booking.plan.name}</p>
             <p><strong>Karts:</strong> ${seatsList}</p>
@@ -77,8 +69,8 @@ export async function sendConfirmationEmail(booking: any) {
           </div>
 
           <div class="qr-code">
-            <p><strong>Presentá este código en recepción:</strong></p>
-            <div style="background: #f0f0f0; padding: 20px; border-radius: 8px; font-family: monospace; font-size: 24px; font-weight: bold; letter-spacing: 2px;">
+            <p><strong>Tu código QR:</strong></p>
+            <div style="background: #f0f0f0; padding: 20px; border-radius: 8px; font-family: monospace; font-size: 24px; font-weight: bold;">
               ${booking.code}
             </div>
           </div>
@@ -117,9 +109,7 @@ export async function sendConfirmationEmail(booking: any) {
   `;
 
   await transporter.sendMail({
-    from: `Rosario Indoor Kart <${
-      process.env.SMTP_USER || "reservas@rosarioindoorkart.com"
-    }>`,
+    from: process.env.SMTP_USER || "reservas@rosarioindoorkart.com",
     to: booking.email,
     subject: `🏎️ Confirmación de Reserva ${booking.code} - Rosario Indoor Kart`,
     html,

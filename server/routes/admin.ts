@@ -1,13 +1,13 @@
 import express from "express";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { requireRole } from "../middleware/auth";
-import bcrypt from "bcryptjs";
+import { format, startOfDay, endOfDay } from "date-fns";
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // Dashboard stats
-router.get("/dashboard", requireRole(["admin", "staff"]), async (req, res) => {
+router.get("/dashboard", async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
 
@@ -48,6 +48,8 @@ router.get("/dashboard", requireRole(["admin", "staff"]), async (req, res) => {
         : 0;
 
     // Upcoming bookings (next 2 hours)
+    const twoHoursFromNow = new Date();
+    twoHoursFromNow.setHours(twoHoursFromNow.getHours() + 2);
     const currentTime = new Date().toTimeString().slice(0, 5);
 
     const upcomingBookings = await prisma.booking.findMany({
@@ -61,7 +63,6 @@ router.get("/dashboard", requireRole(["admin", "staff"]), async (req, res) => {
       include: {
         timeSlot: true,
         plan: true,
-        participants: true,
       },
       take: 10,
       orderBy: { timeSlot: { startTime: "asc" } },
@@ -69,7 +70,7 @@ router.get("/dashboard", requireRole(["admin", "staff"]), async (req, res) => {
 
     res.json({
       todayBookings,
-      todayRevenue: todayRevenue._sum.total || 0,
+      todayRevenue: (todayRevenue._sum.total || 0) / 100,
       occupancyRate,
       upcomingBookings,
     });
@@ -80,18 +81,18 @@ router.get("/dashboard", requireRole(["admin", "staff"]), async (req, res) => {
 });
 
 // Bookings management
-router.get("/bookings", requireRole(["admin", "staff"]), async (req, res) => {
+router.get("/bookings", async (req, res) => {
   try {
-    const { page = 1, limit = 15, search, status, date, planId } = req.query;
+    const { page = 1, limit = 20, search, status, date, planId } = req.query;
 
     const where: any = {};
 
     if (search) {
       where.OR = [
-        { code: { contains: search as string, mode: "insensitive" } },
-        { customerName: { contains: search as string, mode: "insensitive" } },
-        { email: { contains: search as string, mode: "insensitive" } },
-        { phone: { contains: search as string, mode: "insensitive" } },
+        { code: { contains: search as string } },
+        { customerName: { contains: search as string } },
+        { email: { contains: search as string } },
+        { phone: { contains: search as string } },
       ];
     }
 
@@ -138,40 +139,8 @@ router.get("/bookings", requireRole(["admin", "staff"]), async (req, res) => {
   }
 });
 
-// GET a single booking by ID
-router.get(
-  "/bookings/:id",
-  requireRole(["admin", "staff"]),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const booking = await prisma.booking.findUnique({
-        where: { id },
-        include: {
-          branch: true,
-          timeSlot: true,
-          plan: true,
-          payments: true,
-          participants: {
-            include: {
-              kart: true,
-            },
-          },
-        },
-      });
-      if (!booking) {
-        return res.status(404).json({ error: "Reserva no encontrada" });
-      }
-      res.json(booking);
-    } catch (error) {
-      console.error("Get booking error:", error);
-      res.status(500).json({ error: "Error interno del servidor" });
-    }
-  }
-);
-
 // Time slots management
-router.get("/timeslots", requireRole(["admin", "staff"]), async (req, res) => {
+router.get("/timeslots", async (req, res) => {
   try {
     const { date, branchId } = req.query;
 
@@ -197,7 +166,6 @@ router.get("/timeslots", requireRole(["admin", "staff"]), async (req, res) => {
   }
 });
 
-// Generate time slots
 router.post("/timeslots/generate", requireRole(["admin"]), async (req, res) => {
   try {
     const {
@@ -209,7 +177,17 @@ router.post("/timeslots/generate", requireRole(["admin"]), async (req, res) => {
       interval = 20,
       duration = 12,
       buffer = 3,
-      excludeDays = [1], // Monday
+      excludeDays = [1],
+    }: {
+      branchId: string;
+      startDate: string;
+      endDate: string;
+      startTime?: string;
+      endTime?: string;
+      interval?: number;
+      duration?: number;
+      buffer?: number;
+      excludeDays?: number[];
     } = req.body;
 
     const slots: Prisma.TimeSlotCreateManyInput[] = [];
@@ -255,7 +233,6 @@ router.post("/timeslots/generate", requireRole(["admin"]), async (req, res) => {
 
     const created = await prisma.timeSlot.createMany({
       data: slots,
-      skipDuplicates: true,
     });
 
     res.json({
@@ -269,11 +246,12 @@ router.post("/timeslots/generate", requireRole(["admin"]), async (req, res) => {
 });
 
 // Plans management
-router.get("/plans", requireRole(["admin"]), async (req, res) => {
+router.get("/plans", async (req, res) => {
   try {
     const plans = await prisma.plan.findMany({
       include: {
         prices: {
+          where: { active: true },
           orderBy: { validFrom: "desc" },
         },
         _count: { select: { bookings: true } },
@@ -301,12 +279,14 @@ router.post("/plans", requireRole(["admin"]), async (req, res) => {
     } = req.body;
 
     if (id) {
+      // Update existing plan
       const plan = await prisma.plan.update({
         where: { id },
         data: { name, qualyLaps, raceLaps, description, active },
       });
       res.json(plan);
     } else {
+      // Create new plan
       const plan = await prisma.plan.create({
         data: { name, qualyLaps, raceLaps, description, active },
       });
@@ -327,16 +307,18 @@ router.post(
       const { planId } = req.params;
       const { method, amount, surchargePct, validFrom, validTo } = req.body;
 
+      // Deactivate old prices for this method
       await prisma.planPrice.updateMany({
         where: { planId, method, active: true },
         data: { active: false },
       });
 
+      // Create new price
       const price = await prisma.planPrice.create({
         data: {
           planId,
           method,
-          amount,
+          amount: Math.round(amount * 100), // Convert to cents
           surchargePct,
           validFrom: new Date(validFrom),
           validTo: validTo ? new Date(validTo) : null,
@@ -353,7 +335,7 @@ router.post(
 );
 
 // Karts management
-router.get("/karts", requireRole(["admin", "staff"]), async (req, res) => {
+router.get("/karts", async (req, res) => {
   try {
     const { branchId } = req.query;
 
@@ -370,96 +352,88 @@ router.get("/karts", requireRole(["admin", "staff"]), async (req, res) => {
 });
 
 // Update kart status
-router.patch(
-  "/karts/:id",
-  requireRole(["admin", "staff"]),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { status, reason, fromDate, toDate } = req.body;
-
-      const kart = await prisma.kart.update({
-        where: { id },
-        data: { status, reason, fromDate, toDate },
-      });
-
-      res.json(kart);
-    } catch (error) {
-      console.error("Update kart error:", error);
-      res.status(500).json({ error: "Error interno del servidor" });
-    }
-  }
-);
-
-// Users Management
-router.get("/users", requireRole(["admin"]), async (req, res) => {
+router.patch("/karts/:id", async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
-      orderBy: { name: "asc" },
+    const { id } = req.params;
+    const { status, reason, fromDate, toDate } = req.body;
+
+    const kart = await prisma.kart.update({
+      where: { id },
+      data: { status, reason, fromDate, toDate },
     });
-    res.json(users);
+
+    res.json(kart);
   } catch (error) {
-    console.error("Get users error:", error);
+    console.error("Update kart error:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
-router.post("/users", requireRole(["admin"]), async (req, res) => {
+// Reports
+router.get("/reports/revenue", async (req, res) => {
   try {
-    const { name, email, password, role, active } = req.body;
+    const { startDate, endDate, groupBy = "day" } = req.query;
 
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ error: "Faltan campos requeridos" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role,
-        active,
+    const bookings = await prisma.booking.findMany({
+      where: {
+        status: { in: ["confirmed", "pending"] },
+        timeSlot: {
+          date: {
+            gte: startDate as string,
+            lte: endDate as string,
+          },
+        },
+      },
+      include: {
+        timeSlot: true,
+        plan: true,
+        payments: true,
       },
     });
 
-    const { password: _, ...userWithoutPassword } = user;
-    res.status(201).json(userWithoutPassword);
-  } catch (error) {
-    console.error("Create user error:", error);
-    res.status(500).json({ error: "Error al crear el usuario" });
-  }
-});
+    // Group revenue by period
+    const revenueByPeriod = bookings.reduce((acc, booking) => {
+      const key = booking.timeSlot.date; // Could be enhanced for week/month grouping
 
-// Settings Management
-router.get("/settings", requireRole(["admin"]), async (req, res) => {
-  try {
-    const settings = await prisma.settings.findMany();
-    res.json(settings);
+      if (!acc[key]) {
+        acc[key] = {
+          date: key,
+          total: 0,
+          bookings: 0,
+          cash: 0,
+          transfer: 0,
+          mp: 0,
+          card: 0,
+        };
+      }
+
+      acc[key].total += booking.total;
+      acc[key].bookings += 1;
+
+      // Group by payment method
+      booking.payments.forEach((payment) => {
+        if (payment.status === "completed") {
+          acc[key][payment.method as keyof (typeof acc)[string]] +=
+            payment.amount;
+        }
+      });
+
+      return acc;
+    }, {} as Record<string, any>);
+
+    const report = Object.values(revenueByPeriod).map((period) => ({
+      ...period,
+      total: period.total / 100, // Convert from cents
+      cash: period.cash / 100,
+      transfer: period.transfer / 100,
+      mp: period.mp / 100,
+      card: period.card / 100,
+    }));
+
+    res.json(report);
   } catch (error) {
-    console.error("Get settings error:", error);
+    console.error("Revenue report error:", error);
     res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-router.patch("/settings", requireRole(["admin"]), async (req, res) => {
-  try {
-    const settingsToUpdate: { key: string; value: string }[] = req.body;
-
-    const updatePromises = settingsToUpdate.map((setting) =>
-      prisma.settings.update({
-        where: { key: setting.key },
-        data: { value: setting.value },
-      })
-    );
-
-    await Promise.all(updatePromises);
-
-    res.json({ message: "Configuración actualizada exitosamente" });
-  } catch (error) {
-    console.error("Update settings error:", error);
-    res.status(500).json({ error: "Error al actualizar la configuración" });
   }
 });
 

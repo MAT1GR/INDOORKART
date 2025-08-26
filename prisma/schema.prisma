@@ -9,6 +9,20 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+model Blackout {
+  id            String   @id @default(cuid())
+  branchId      String
+  dateRangeStart String
+  dateRangeEnd  String
+  reason        String
+  affectedSlots String? // JSON of affected slots
+  createdAt     DateTime @default(now())
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@map("blackouts")
+}
+
 model Branch {
   id                String      @id @default(cuid())
   name              String
@@ -21,12 +35,12 @@ model Branch {
   circuitLastUpdate DateTime    @default(now())
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
-  
+
   timeSlots         TimeSlot[]
   bookings          Booking[]
   blackouts         Blackout[]
   karts             Kart[]
-  
+
   @@map("branches")
 }
 
@@ -43,7 +57,7 @@ model TimeSlot {
   status      String   @default("ok") // ok, cancelled, maintenance
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   branch      Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
   bookings    Booking[]
   holds       Hold[]
@@ -60,7 +74,7 @@ model Kart {
   reason   String?
   fromDate String? // YYYY-MM-DD
   toDate   String? // YYYY-MM-DD
-  
+
   branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
   participants Participant[]
 
@@ -77,10 +91,10 @@ model Plan {
   active      Boolean @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   prices   PlanPrice[]
   bookings Booking[]
-  
+
   @@map("plans")
 }
 
@@ -94,9 +108,9 @@ model PlanPrice {
   validTo      DateTime?
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
-  
+
   plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  
+
   @@map("plan_prices")
 }
 
@@ -120,7 +134,7 @@ model Booking {
   total         Int      // in cents
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+
   branch       Branch        @relation(fields: [branchId], references: [id])
   timeSlot     TimeSlot      @relation(fields: [timeSlotId], references: [id])
   plan         Plan          @relation(fields: [planId], references: [id])
@@ -154,9 +168,9 @@ model Payment {
   metadata    String?  // JSON with additional payment info
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   booking Booking @relation(fields: [bookingId], references: [id])
-  
+
   @@map("payments")
 }
 
@@ -167,9 +181,9 @@ model Hold {
   expiresAt  DateTime
   sessionId  String   // to identify the user session
   createdAt  DateTime @default(now())
-  
+
   timeSlot TimeSlot @relation(fields: [timeSlotId], references: [id])
-  
+
   @@map("holds")
 }
 
@@ -182,7 +196,7 @@ model User {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("users")
 }
 
@@ -190,7 +204,7 @@ model Settings {
   id    String @id @default(cuid())
   key   String @unique
   value String
-  
+
   @@map("settings")
 }
 
@@ -207,18 +221,4 @@ model Promo {
   createdAt DateTime  @default(now())
 
   @@map("promos")
-}
-
-model Blackout {
-  id            String   @id @default(cuid())
-  branchId      String
-  dateRangeStart String
-  dateRangeEnd  String
-  reason        String
-  affectedSlots String?  // JSON of affected slots
-  createdAt     DateTime @default(now())
-
-  branch Branch @relation(fields: [branchId], references: [id])
-
-  @@map("blackouts")
 }
