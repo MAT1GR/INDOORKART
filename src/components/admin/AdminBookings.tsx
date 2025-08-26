@@ -1,7 +1,6 @@
-// mat1gr/indoorkart/INDOORKART-develop/src/components/admin/AdminBookings.tsx
-import React, { useState, useEffect } from "react";
-import { useApi, apiCall } from "../../hooks/useApi";
-import { Booking } from "../../types";
+import React, { useState } from "react";
+import { useApi } from "../../hooks/useApi";
+import { Booking, Branch } from "../../types";
 import {
   formatCurrency,
   formatDateTime,
@@ -11,16 +10,16 @@ import {
 import Input from "../common/Input";
 import Button from "../common/Button";
 import LoadingSpinner from "../common/LoadingSpinner";
-import {
-  Search,
-  SlidersHorizontal,
-  CalendarDays,
-  PlusCircle,
-} from "lucide-react";
+import Modal from "../common/Modal";
+import BookingWizard from "../booking/BookingWizard";
+import { Search, PlusCircle, Eye } from "lucide-react";
 
 const AdminBookings: React.FC = () => {
   const [filters, setFilters] = useState({ search: "", status: "", date: "" });
   const [page, setPage] = useState(1);
+  const [isBookingWizardOpen, setIsBookingWizardOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   const query = new URLSearchParams({
     page: page.toString(),
@@ -28,16 +27,26 @@ const AdminBookings: React.FC = () => {
     ...filters,
   }).toString();
 
-  const { data, loading, error } = useApi<{
+  const { data, loading, error, manualFetch } = useApi<{
     bookings: Booking[];
     pagination: any;
   }>(`/admin/bookings?${query}`);
+
+  const { data: branch } = useApi<Branch>("/public/branch");
 
   const handleFilterChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setFilters((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setPage(1);
+  };
+
+  const handleViewDetails = (bookingId: string) => {
+    const booking = data?.bookings.find((b) => b.id === bookingId);
+    if (booking) {
+      setSelectedBooking(booking);
+      setIsDetailModalOpen(true);
+    }
   };
 
   return (
@@ -51,7 +60,7 @@ const AdminBookings: React.FC = () => {
             Buscá, filtrá y administrá todas las reservas.
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsBookingWizardOpen(true)}>
           <PlusCircle className="h-4 w-4 mr-2" />
           Nueva Reserva
         </Button>
@@ -156,8 +165,12 @@ const AdminBookings: React.FC = () => {
                     {formatCurrency(booking.total / 100)}
                   </td>
                   <td className="px-6 py-4">
-                    <Button size="sm" variant="secondary">
-                      Ver
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleViewDetails(booking.id)}
+                    >
+                      <Eye className="h-4 w-4" />
                     </Button>
                   </td>
                 </tr>
@@ -169,21 +182,93 @@ const AdminBookings: React.FC = () => {
 
       {/* Pagination */}
       {data?.pagination && data.pagination.pages > 1 && (
-        <div className="flex justify-between items-center">
-          <Button onClick={() => setPage((p) => p - 1)} disabled={page === 1}>
+        <div className="flex justify-between items-center mt-4">
+          <Button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
             Anterior
           </Button>
           <span>
             Página {page} de {data.pagination.pages}
           </span>
           <Button
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() =>
+              setPage((p) => Math.min(data.pagination.pages, p + 1))
+            }
             disabled={page === data.pagination.pages}
           >
             Siguiente
           </Button>
         </div>
       )}
+
+      {branch && (
+        <BookingWizard
+          isOpen={isBookingWizardOpen}
+          onClose={() => {
+            setIsBookingWizardOpen(false);
+            manualFetch();
+          }}
+          branch={branch}
+        />
+      )}
+
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        title={`Detalles de Reserva ${selectedBooking?.code}`}
+      >
+        {selectedBooking && (
+          <div className="space-y-4">
+            <p>
+              <strong>Cliente:</strong> {selectedBooking.customerName}
+            </p>
+            <p>
+              <strong>Email:</strong> {selectedBooking.email}
+            </p>
+            <p>
+              <strong>Teléfono:</strong> {selectedBooking.phone}
+            </p>
+            <p>
+              <strong>Fecha:</strong>{" "}
+              {formatDateTime(
+                selectedBooking.timeSlot!.date,
+                selectedBooking.timeSlot!.startTime
+              )}
+            </p>
+            <p>
+              <strong>Plan:</strong> {selectedBooking.plan?.name}
+            </p>
+            <p>
+              <strong>Karts:</strong>{" "}
+              {JSON.parse(selectedBooking.seats).join(", ")}
+            </p>
+            <p>
+              <strong>Estado:</strong>{" "}
+              {getBookingStatusText(selectedBooking.status)}
+            </p>
+            <p>
+              <strong>Pago:</strong>{" "}
+              {getPaymentStatusText(selectedBooking.paymentStatus)}
+            </p>
+            <p>
+              <strong>Total:</strong>{" "}
+              {formatCurrency(selectedBooking.total / 100)}
+            </p>
+            {selectedBooking.notes && (
+              <p>
+                <strong>Notas:</strong> {selectedBooking.notes}
+              </p>
+            )}
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => setIsDetailModalOpen(false)}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

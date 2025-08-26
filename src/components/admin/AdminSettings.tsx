@@ -1,25 +1,48 @@
-import React from "react";
-import { useApi } from "../../hooks/useApi";
-import { Settings } from "../../types"; // Assuming Settings is defined in types
+import React, { useState, useEffect } from "react";
+import { useApi, apiCall } from "../../hooks/useApi";
+import { Setting } from "../../types";
 import Button from "../common/Button";
 import Input from "../common/Input";
 import LoadingSpinner from "../common/LoadingSpinner";
 import { Settings as SettingsIcon } from "lucide-react";
 
-// This is a new interface that should be added to `src/types/index.ts`
-interface Setting {
-  id: string;
-  key: string;
-  value: string;
-}
-
 const AdminSettings: React.FC = () => {
-  // NOTE: This endpoint doesn't exist yet in the provided backend code.
-  const {
-    data: settings,
-    loading,
-    error,
-  } = useApi<Setting[]>("/admin/settings");
+  const { data, loading, error } = useApi<Setting[]>("/admin/settings");
+  const [settings, setSettings] = useState<Setting[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (data) {
+      setSettings(data);
+    }
+  }, [data]);
+
+  const handleInputChange = (key: string, value: string) => {
+    setSettings((currentSettings) =>
+      currentSettings.map((setting) =>
+        setting.key === key ? { ...setting, value } : setting
+      )
+    );
+  };
+
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    try {
+      await apiCall("/admin/settings", {
+        method: "PATCH",
+        body: JSON.stringify(settings),
+      });
+      alert("Configuración guardada exitosamente");
+    } catch (err) {
+      alert("Error al guardar la configuración");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const getSettingLabel = (key: string) => {
+    return key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
 
   return (
     <div className="space-y-6">
@@ -36,20 +59,24 @@ const AdminSettings: React.FC = () => {
         </div>
       ) : error ? (
         <div className="p-12 text-center text-red-600">
-          Error al cargar la configuración (endpoint no implementado).
+          Error al cargar la configuración.
         </div>
       ) : (
-        <div className="bg-white p-6 rounded-lg border space-y-4">
-          {settings?.map((setting) => (
+        <div className="bg-white p-8 rounded-lg border space-y-6">
+          {settings.map((setting) => (
             <div key={setting.id}>
               <Input
-                label={setting.key.replace(/_/g, " ")}
+                label={getSettingLabel(setting.key)}
                 value={setting.value}
-                disabled // Make this editable in a real implementation
+                onChange={(e) => handleInputChange(setting.key, e.target.value)}
               />
             </div>
           ))}
-          <Button>Guardar Cambios</Button>
+          <div className="flex justify-end pt-4">
+            <Button onClick={handleSaveChanges} loading={isSaving}>
+              {isSaving ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -1,12 +1,15 @@
-import express from 'express';
-import { PrismaClient } from '@prisma/client';
-import { generateBookingCode, sendConfirmationEmail } from '../services/booking';
+import express from "express";
+import { PrismaClient } from "@prisma/client";
+import {
+  generateBookingCode,
+  sendConfirmationEmail,
+} from "../services/booking";
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // Create a hold on seats
-router.post('/hold', async (req, res) => {
+router.post("/hold", async (req, res) => {
   try {
     const { timeSlotId, seats, sessionId } = req.body;
 
@@ -28,10 +31,12 @@ router.post('/hold', async (req, res) => {
       return [...acc, ...heldSeatNumbers];
     }, [] as number[]);
 
-    const conflictingSeats = seats.filter((seat: number) => heldSeats.includes(seat));
+    const conflictingSeats = seats.filter((seat: number) =>
+      heldSeats.includes(seat)
+    );
     if (conflictingSeats.length > 0) {
       return res.status(409).json({
-        error: 'Algunos asientos ya están reservados',
+        error: "Algunos asientos ya están reservados",
         conflictingSeats,
       });
     }
@@ -51,37 +56,39 @@ router.post('/hold', async (req, res) => {
 
     res.json({ hold, expiresAt });
   } catch (error) {
-    console.error('Create hold error:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("Create hold error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 // Create booking
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const {
       branchId,
       timeSlotId,
       planId,
-      seats,
-      customerName,
-      email,
-      phone,
+      participants,
       notes,
       paymentMethod,
       sessionId,
     } = req.body;
 
-    // Validate required fields
-    if (!branchId || !timeSlotId || !planId || !seats || !customerName || !email || !phone || !paymentMethod) {
-      return res.status(400).json({ error: 'Faltan campos requeridos' });
+    const mainParticipant = participants.find((p: any) => p.isHolder);
+    if (!mainParticipant) {
+      return res
+        .status(400)
+        .json({ error: "Faltan datos del piloto principal" });
     }
+
+    const { name: customerName, email, phone } = mainParticipant;
+    const seats = participants.map((p: any) => p.kartNumber);
 
     // Check if seats are still available
     const existingBookings = await prisma.booking.findMany({
       where: {
         timeSlotId,
-        status: { in: ['pending', 'confirmed'] },
+        status: { in: ["pending", "confirmed"] },
       },
     });
 
@@ -90,15 +97,16 @@ router.post('/', async (req, res) => {
       return [...acc, ...bookedSeatNumbers];
     }, [] as number[]);
 
-    const conflictingSeats = seats.filter((seat: number) => bookedSeats.includes(seat));
+    const conflictingSeats = seats.filter((seat: number) =>
+      bookedSeats.includes(seat)
+    );
     if (conflictingSeats.length > 0) {
       return res.status(409).json({
-        error: 'Algunos asientos ya están reservados',
+        error: "Algunos asientos ya están reservados",
         conflictingSeats,
       });
     }
 
-    // Get plan with current price
     const plan = await prisma.plan.findUnique({
       where: { id: planId },
       include: {
@@ -107,94 +115,110 @@ router.post('/', async (req, res) => {
             method: paymentMethod,
             active: true,
             validFrom: { lte: new Date() },
-            OR: [
-              { validTo: null },
-              { validTo: { gte: new Date() } },
-            ],
+            OR: [{ validTo: null }, { validTo: { gte: new Date() } }],
           },
-          orderBy: { validFrom: 'desc' },
+          orderBy: { validFrom: "desc" },
           take: 1,
         },
       },
     });
 
     if (!plan || !plan.prices[0]) {
-      return res.status(404).json({ error: 'Plan o precio no encontrado' });
+      return res.status(404).json({ error: "Plan o precio no encontrado" });
     }
 
     const price = plan.prices[0];
-    const unitPrice = price.amount + (price.amount * (price.surchargePct || 0) / 100);
-    const subtotal = Math.round(unitPrice * seats.length);
-    const total = subtotal; // TODO: Apply discounts/promos
-
-    // Generate booking code
+    const unitPrice =
+      price.amount + (price.amount * (price.surchargePct || 0)) / 100;
+    const total = Math.round(unitPrice * seats.length);
     const code = generateBookingCode();
 
-    // Create booking
-    const booking = await prisma.booking.create({
-      data: {
-        code,
-        branchId,
-        timeSlotId,
-        planId,
-        seats: JSON.stringify(seats),
-        qty: seats.length,
-        customerName,
-        email,
-        phone,
-        notes: notes || '',
-        status: paymentMethod === 'cash' ? 'confirmed' : 'pending',
-        paymentStatus: paymentMethod === 'cash' ? 'deposit' : 'unpaid',
-        subtotal,
-        total,
-      },
-      include: {
-        branch: true,
-        timeSlot: true,
-        plan: true,
-      },
+    const booking = await prisma.$transaction(async (tx) => {
+      const newBooking = await tx.booking.create({
+        data: {
+          code,
+          branchId,
+          timeSlotId,
+          planId,
+          seats: JSON.stringify(seats),
+          qty: seats.length,
+          customerName,
+          email,
+          phone,
+          notes: notes || "",
+          status: paymentMethod === "cash" ? "confirmed" : "pending",
+          paymentStatus: paymentMethod === "cash" ? "deposit" : "unpaid",
+          subtotal: total,
+          total,
+        },
+        include: {
+          branch: true,
+          timeSlot: true,
+          plan: true,
+        },
+      });
+
+      const karts = await tx.kart.findMany({
+        where: {
+          branchId,
+          number: { in: seats },
+        },
+      });
+
+      const participantData = participants.map((p: any) => {
+        const kart = karts.find((k) => k.number === p.kartNumber);
+        if (!kart) throw new Error(`Kart ${p.kartNumber} not found`);
+        return {
+          bookingId: newBooking.id,
+          kartId: kart.id,
+          name: p.name,
+          dni: p.dni,
+          isHolder: p.isHolder,
+        };
+      });
+
+      await tx.participant.createMany({
+        data: participantData,
+      });
+
+      return newBooking;
     });
 
-    // Clear user's holds
     await prisma.hold.deleteMany({
       where: { sessionId },
     });
 
-    // Update time slot availability
     await prisma.timeSlot.update({
       where: { id: timeSlotId },
       data: { available: { decrement: seats.length } },
     });
 
-    // Create payment record if not cash
-    if (paymentMethod !== 'cash') {
+    if (paymentMethod !== "cash") {
       await prisma.payment.create({
         data: {
           bookingId: booking.id,
           method: paymentMethod,
           amount: Math.round(total * 0.5), // 50% deposit
-          status: 'pending',
+          status: "pending",
         },
       });
     }
 
-    // Send confirmation email
     try {
       await sendConfirmationEmail(booking);
     } catch (emailError) {
-      console.error('Email send error:', emailError);
-      // Don't fail the booking if email fails
+      console.error("Email send error:", emailError);
     }
 
     res.status(201).json({ booking });
   } catch (error) {
-    console.error('Create booking error:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("Create booking error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 // Get booking by code
-router.get('/:code', async (req, res) => {
+router.get("/:code", async (req, res) => {
   try {
     const { code } = req.params;
 
@@ -205,22 +229,27 @@ router.get('/:code', async (req, res) => {
         timeSlot: true,
         plan: true,
         payments: true,
+        participants: {
+          include: {
+            kart: true,
+          },
+        },
       },
     });
 
     if (!booking) {
-      return res.status(404).json({ error: 'Reserva no encontrada' });
+      return res.status(404).json({ error: "Reserva no encontrada" });
     }
 
     res.json({ booking });
   } catch (error) {
-    console.error('Get booking error:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("Get booking error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 // Cancel booking
-router.post('/:code/cancel', async (req, res) => {
+router.post("/:code/cancel", async (req, res) => {
   try {
     const { code } = req.params;
 
@@ -230,27 +259,29 @@ router.post('/:code/cancel', async (req, res) => {
     });
 
     if (!booking) {
-      return res.status(404).json({ error: 'Reserva no encontrada' });
+      return res.status(404).json({ error: "Reserva no encontrada" });
     }
 
-    if (booking.status === 'cancelled') {
-      return res.status(400).json({ error: 'La reserva ya está cancelada' });
+    if (booking.status === "cancelled") {
+      return res.status(400).json({ error: "La reserva ya está cancelada" });
     }
 
     // Check if can cancel (24h policy)
-    const slotDateTime = new Date(`${booking.timeSlot.date}T${booking.timeSlot.startTime}`);
+    const slotDateTime = new Date(
+      `${booking.timeSlot.date}T${booking.timeSlot.startTime}`
+    );
     const hoursUntil = (slotDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
 
     if (hoursUntil < 24) {
       return res.status(400).json({
-        error: 'No se puede cancelar con menos de 24 horas de anticipación',
+        error: "No se puede cancelar con menos de 24 horas de anticipación",
       });
     }
 
     // Cancel booking
     await prisma.booking.update({
       where: { id: booking.id },
-      data: { status: 'cancelled' },
+      data: { status: "cancelled" },
     });
 
     // Restore time slot availability
@@ -259,15 +290,15 @@ router.post('/:code/cancel', async (req, res) => {
       data: { available: { increment: booking.qty } },
     });
 
-    res.json({ message: 'Reserva cancelada exitosamente' });
+    res.json({ message: "Reserva cancelada exitosamente" });
   } catch (error) {
-    console.error('Cancel booking error:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("Cancel booking error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 // Reschedule booking
-router.post('/:code/reschedule', async (req, res) => {
+router.post("/:code/reschedule", async (req, res) => {
   try {
     const { code } = req.params;
     const { newTimeSlotId, newSeats } = req.body;
@@ -278,20 +309,24 @@ router.post('/:code/reschedule', async (req, res) => {
     });
 
     if (!booking) {
-      return res.status(404).json({ error: 'Reserva no encontrada' });
+      return res.status(404).json({ error: "Reserva no encontrada" });
     }
 
-    if (booking.status !== 'confirmed' && booking.status !== 'pending') {
-      return res.status(400).json({ error: 'No se puede reprogramar esta reserva' });
+    if (booking.status !== "confirmed" && booking.status !== "pending") {
+      return res
+        .status(400)
+        .json({ error: "No se puede reprogramar esta reserva" });
     }
 
     // Check if can reschedule (24h policy)
-    const slotDateTime = new Date(`${booking.timeSlot.date}T${booking.timeSlot.startTime}`);
+    const slotDateTime = new Date(
+      `${booking.timeSlot.date}T${booking.timeSlot.startTime}`
+    );
     const hoursUntil = (slotDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
 
     if (hoursUntil < 24) {
       return res.status(400).json({
-        error: 'No se puede reprogramar con menos de 24 horas de anticipación',
+        error: "No se puede reprogramar con menos de 24 horas de anticipación",
       });
     }
 
@@ -301,7 +336,9 @@ router.post('/:code/reschedule', async (req, res) => {
     });
 
     if (!newTimeSlot || newTimeSlot.available < newSeats.length) {
-      return res.status(400).json({ error: 'El nuevo horario no tiene suficiente disponibilidad' });
+      return res
+        .status(400)
+        .json({ error: "El nuevo horario no tiene suficiente disponibilidad" });
     }
 
     // Update booking
@@ -326,10 +363,10 @@ router.post('/:code/reschedule', async (req, res) => {
       data: { available: { decrement: newSeats.length } },
     });
 
-    res.json({ message: 'Reserva reprogramada exitosamente' });
+    res.json({ message: "Reserva reprogramada exitosamente" });
   } catch (error) {
-    console.error('Reschedule booking error:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("Reschedule booking error:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 

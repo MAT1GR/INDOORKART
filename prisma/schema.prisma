@@ -1,4 +1,4 @@
-// mat1gr/indoorkart/INDOORKART-develop/prisma/schema.prisma
+// mat1gr/indoorkart/INDOORKART-feature-adminpanel/prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -39,6 +39,7 @@ model TimeSlot {
   bufferMin   Int      @default(3)
   capacity    Int      @default(8)
   available   Int      @default(8)
+  basePlanId  String?
   status      String   @default("ok") // ok, cancelled, maintenance
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -46,7 +47,8 @@ model TimeSlot {
   branch      Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
   bookings    Booking[]
   holds       Hold[]
-  
+
+  @@unique([branchId, date, startTime])
   @@map("time_slots")
 }
 
@@ -104,6 +106,8 @@ model Booking {
   branchId      String
   timeSlotId    String
   planId        String
+  seats         String   // JSON array of kart numbers
+  qty           Int
   customerName  String
   email         String
   phone         String
@@ -117,25 +121,25 @@ model Booking {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
-  branch   Branch   @relation(fields: [branchId], references: [id])
-  timeSlot TimeSlot @relation(fields: [timeSlotId], references: [id])
-  plan     Plan     @relation(fields: [planId], references: [id])
-  payments Payment[]
-  participants Participant[] // <-- RELACIÓN AÑADIDA
+  branch       Branch        @relation(fields: [branchId], references: [id])
+  timeSlot     TimeSlot      @relation(fields: [timeSlotId], references: [id])
+  plan         Plan          @relation(fields: [planId], references: [id])
+  payments     Payment[]
+  participants Participant[]
 
   @@map("bookings")
 }
 
-// NUEVO MODELO PARTICIPANT
 model Participant {
   id        String   @id @default(cuid())
   bookingId String
-  kartId    String?
+  kartId    String
   name      String
-  age       Int?
+  dni       String?
+  isHolder  Boolean  @default(false)
 
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  kart      Kart?    @relation(fields: [kartId], references: [id])
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  kart    Kart    @relation(fields: [kartId], references: [id])
 
   @@map("participants")
 }
@@ -159,7 +163,7 @@ model Payment {
 model Hold {
   id         String   @id @default(cuid())
   timeSlotId String
-  seats      String   // JSON array of seat numbers
+  seats      String   // JSON array of kart numbers
   expiresAt  DateTime
   sessionId  String   // to identify the user session
   createdAt  DateTime @default(now())
@@ -188,4 +192,33 @@ model Settings {
   value String
   
   @@map("settings")
+}
+
+model Promo {
+  id        String    @id @default(cuid())
+  type      String    // valley, coupon
+  name      String
+  rules     String    // JSON with rules
+  validFrom DateTime
+  validTo   DateTime?
+  active    Boolean   @default(true)
+  maxUses   Int?
+  usedCount Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@map("promos")
+}
+
+model Blackout {
+  id            String   @id @default(cuid())
+  branchId      String
+  dateRangeStart String
+  dateRangeEnd  String
+  reason        String
+  affectedSlots String?  // JSON of affected slots
+  createdAt     DateTime @default(now())
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@map("blackouts")
 }

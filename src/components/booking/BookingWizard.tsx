@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, Car, CreditCard, Check } from 'lucide-react';
-import Button from '../common/Button';
-import { useApi, apiCall } from '../../hooks/useApi';
-import { TimeSlot, Plan, KartStatus, BookingFormData, Branch } from '../../types';
-import { formatDate, formatTime, formatCurrency } from '../../utils/formatters';
-import DatePicker from './DatePicker';
-import TimeSlotPicker from './TimeSlotPicker';
-import PlanKartPicker from './PlanKartPicker';
-import BookingForm from './BookingForm';
+import React, { useState, useEffect } from "react";
+import { X, Calendar, Car, CreditCard, Check } from "lucide-react";
+import Button from "../common/Button";
+import { apiCall } from "../../hooks/useApi";
+import { TimeSlot, Plan, Branch, Participant } from "../../types";
+import { formatDate, formatTime, formatCurrency } from "../../utils/formatters";
+import DatePicker from "./DatePicker";
+import TimeSlotPicker from "./TimeSlotPicker";
+import PlanKartPicker from "./PlanKartPicker";
+import BookingForm from "./BookingForm";
 
 interface BookingWizardProps {
   isOpen: boolean;
@@ -22,10 +22,13 @@ interface WizardStep {
 }
 
 const steps: WizardStep[] = [
-  { id: 1, title: 'Elegí el día', icon: <Calendar className="h-5 w-5" /> },
-  { id: 2, title: 'Elegí el horario', icon: <Clock className="h-5 w-5" /> },
-  { id: 3, title: 'Plan y karts', icon: <Car className="h-5 w-5" /> },
-  { id: 4, title: 'Datos y pago', icon: <CreditCard className="h-5 w-5" /> },
+  { id: 1, title: "Fecha y Hora", icon: <Calendar className="h-5 w-5" /> },
+  { id: 2, title: "Plan y Karts", icon: <Car className="h-5 w-5" /> },
+  {
+    id: 3,
+    title: "Datos de Pilotos",
+    icon: <CreditCard className="h-5 w-5" />,
+  },
 ];
 
 const BookingWizard: React.FC<BookingWizardProps> = ({
@@ -34,24 +37,25 @@ const BookingWizard: React.FC<BookingWizardProps> = ({
   branch,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(
+    null
+  );
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [selectedKarts, setSelectedKarts] = useState<number[]>([]);
   const [sessionId] = useState(() => `session-${Date.now()}-${Math.random()}`);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<any>(null);
 
-  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
         setCurrentStep(1);
-        setSelectedDate('');
+        setSelectedDate("");
         setSelectedTimeSlot(null);
         setSelectedPlan(null);
-        setSelectedSeats([]);
+        setSelectedKarts([]);
         setBookingComplete(false);
         setCreatedBooking(null);
       }, 300);
@@ -59,7 +63,7 @@ const BookingWizard: React.FC<BookingWizardProps> = ({
   }, [isOpen]);
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -73,40 +77,42 @@ const BookingWizard: React.FC<BookingWizardProps> = ({
   const canProceedToStep = (step: number): boolean => {
     switch (step) {
       case 2:
-        return !!selectedDate;
-      case 3:
         return !!selectedTimeSlot;
-      case 4:
-        return !!selectedPlan && selectedSeats.length > 0;
+      case 3:
+        return !!selectedPlan && selectedKarts.length > 0;
       default:
         return true;
     }
   };
 
-  const handleBookingSubmit = async (formData: Omit<BookingFormData, 'branchId' | 'timeSlotId' | 'planId' | 'seats' | 'sessionId'>) => {
+  const handleBookingSubmit = async (formData: {
+    participants: Participant[];
+    notes?: string;
+    paymentMethod: any;
+  }) => {
     if (!selectedTimeSlot || !selectedPlan) return;
 
     setIsSubmitting(true);
     try {
-      const bookingData: BookingFormData = {
-        ...formData,
-        branchId: branch.id,
-        timeSlotId: selectedTimeSlot.id,
-        planId: selectedPlan.id,
-        seats: selectedSeats,
-        sessionId,
-      };
-
-      const response = await apiCall('/booking', {
-        method: 'POST',
-        body: JSON.stringify(bookingData),
+      const { participants, notes, paymentMethod } = formData;
+      const response = await apiCall("/booking", {
+        method: "POST",
+        body: JSON.stringify({
+          branchId: branch.id,
+          timeSlotId: selectedTimeSlot.id,
+          planId: selectedPlan.id,
+          participants,
+          notes,
+          paymentMethod,
+          sessionId,
+        }),
       });
 
       setCreatedBooking(response.booking);
       setBookingComplete(true);
     } catch (error) {
-      console.error('Booking error:', error);
-      alert('Error al crear la reserva. Intentá de nuevo.');
+      console.error("Booking error:", error);
+      alert("Error al crear la reserva. Por favor, intentá de nuevo.");
     } finally {
       setIsSubmitting(false);
     }
@@ -117,12 +123,12 @@ const BookingWizard: React.FC<BookingWizardProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
           onClick={onClose}
         />
-        
-        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+
+        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
           {/* Header */}
           <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white p-6">
             <div className="flex items-center justify-between">
@@ -142,17 +148,14 @@ const BookingWizard: React.FC<BookingWizardProps> = ({
             {!bookingComplete && (
               <div className="flex items-center justify-center mt-6 space-x-4">
                 {steps.map((step) => (
-                  <div
-                    key={step.id}
-                    className="flex items-center space-x-2"
-                  >
+                  <div key={step.id} className="flex items-center space-x-2">
                     <div
                       className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
                         currentStep === step.id
-                          ? 'bg-white text-red-600'
+                          ? "bg-white text-red-600"
                           : currentStep > step.id
-                          ? 'bg-green-500 text-white'
-                          : 'bg-red-700 text-red-200'
+                          ? "bg-green-500 text-white"
+                          : "bg-red-700 text-red-200"
                       }`}
                     >
                       {currentStep > step.id ? (
@@ -161,15 +164,19 @@ const BookingWizard: React.FC<BookingWizardProps> = ({
                         step.icon
                       )}
                     </div>
-                    <span className={`text-sm font-medium hidden md:block ${
-                      currentStep >= step.id ? 'text-white' : 'text-red-200'
-                    }`}>
+                    <span
+                      className={`text-sm font-medium hidden md:block ${
+                        currentStep >= step.id ? "text-white" : "text-red-200"
+                      }`}
+                    >
                       {step.title}
                     </span>
                     {step.id < steps.length && (
-                      <div className={`hidden md:block w-8 h-0.5 ${
-                        currentStep > step.id ? 'bg-green-400' : 'bg-red-700'
-                      }`} />
+                      <div
+                        className={`hidden md:block w-8 h-0.5 ${
+                          currentStep > step.id ? "bg-green-400" : "bg-red-700"
+                        }`}
+                      />
                     )}
                   </div>
                 ))}
@@ -178,30 +185,51 @@ const BookingWizard: React.FC<BookingWizardProps> = ({
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[60vh]">
+          <div className="p-6 overflow-y-auto flex-grow">
             {bookingComplete && createdBooking ? (
               <div className="text-center space-y-6">
                 <div className="text-green-600">
                   <Check className="h-16 w-16 mx-auto mb-4" />
                   <h3 className="text-2xl font-bold">¡Reserva Confirmada!</h3>
                 </div>
-                
+
                 <div className="bg-gray-50 p-6 rounded-lg">
-                  <h4 className="font-semibold mb-4">Detalles de tu reserva:</h4>
+                  <h4 className="font-semibold mb-4">
+                    Detalles de tu reserva:
+                  </h4>
                   <div className="space-y-2 text-left">
-                    <p><strong>Código:</strong> {createdBooking.code}</p>
-                    <p><strong>Fecha:</strong> {formatDate(createdBooking.timeSlot.date)}</p>
-                    <p><strong>Horario:</strong> {formatTime(createdBooking.timeSlot.startTime)}</p>
-                    <p><strong>Plan:</strong> {createdBooking.plan.name}</p>
-                    <p><strong>Karts:</strong> {JSON.parse(createdBooking.seats).join(', ')}</p>
-                    <p><strong>Total:</strong> {formatCurrency(createdBooking.total / 100)}</p>
+                    <p>
+                      <strong>Código:</strong> {createdBooking.code}
+                    </p>
+                    <p>
+                      <strong>Fecha:</strong>{" "}
+                      {formatDate(createdBooking.timeSlot.date)}
+                    </p>
+                    <p>
+                      <strong>Horario:</strong>{" "}
+                      {formatTime(createdBooking.timeSlot.startTime)}
+                    </p>
+                    <p>
+                      <strong>Plan:</strong> {createdBooking.plan.name}
+                    </p>
+                    <p>
+                      <strong>Karts:</strong>{" "}
+                      {JSON.parse(createdBooking.seats).join(", ")}
+                    </p>
+                    <p>
+                      <strong>Total:</strong>{" "}
+                      {formatCurrency(createdBooking.total / 100)}
+                    </p>
                   </div>
                 </div>
 
                 <div className="text-sm text-gray-600 space-y-2">
                   <p>📧 Te enviamos los detalles y QR por email</p>
                   <p>⚠️ Recordá llegar 15 minutos antes</p>
-                  <p>📱 Podés gestionar tu reserva con el código: <strong>{createdBooking.code}</strong></p>
+                  <p>
+                    📱 Podés gestionar tu reserva con el código:{" "}
+                    <strong>{createdBooking.code}</strong>
+                  </p>
                 </div>
 
                 <Button onClick={onClose} size="lg">
@@ -211,49 +239,50 @@ const BookingWizard: React.FC<BookingWizardProps> = ({
             ) : (
               <div>
                 {currentStep === 1 && (
-                  <DatePicker
-                    selectedDate={selectedDate}
-                    onDateSelect={setSelectedDate}
-                    branch={branch}
-                  />
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <DatePicker
+                      selectedDate={selectedDate}
+                      onDateSelect={setSelectedDate}
+                      branch={branch}
+                    />
+                    {selectedDate && (
+                      <TimeSlotPicker
+                        selectedDate={selectedDate}
+                        selectedTimeSlot={selectedTimeSlot}
+                        onTimeSlotSelect={setSelectedTimeSlot}
+                        branch={branch}
+                      />
+                    )}
+                  </div>
                 )}
-
-                {currentStep === 2 && selectedDate && (
-                  <TimeSlotPicker
-                    selectedDate={selectedDate}
-                    selectedTimeSlot={selectedTimeSlot}
-                    onTimeSlotSelect={setSelectedTimeSlot}
-                    branch={branch}
-                  />
-                )}
-
-                {currentStep === 3 && selectedTimeSlot && (
+                {currentStep === 2 && selectedTimeSlot && (
                   <PlanKartPicker
                     timeSlot={selectedTimeSlot}
                     selectedPlan={selectedPlan}
-                    selectedSeats={selectedSeats}
+                    selectedKarts={selectedKarts}
                     onPlanSelect={setSelectedPlan}
-                    onSeatsSelect={setSelectedSeats}
+                    onKartsSelect={setSelectedKarts}
                     sessionId={sessionId}
                   />
                 )}
-
-                {currentStep === 4 && selectedPlan && selectedSeats.length > 0 && (
-                  <BookingForm
-                    plan={selectedPlan}
-                    seats={selectedSeats}
-                    timeSlot={selectedTimeSlot!}
-                    onSubmit={handleBookingSubmit}
-                    isLoading={isSubmitting}
-                  />
-                )}
+                {currentStep === 3 &&
+                  selectedPlan &&
+                  selectedKarts.length > 0 && (
+                    <BookingForm
+                      plan={selectedPlan}
+                      karts={selectedKarts}
+                      timeSlot={selectedTimeSlot!}
+                      onSubmit={handleBookingSubmit}
+                      isLoading={isSubmitting}
+                    />
+                  )}
               </div>
             )}
           </div>
 
           {/* Footer */}
           {!bookingComplete && (
-            <div className="border-t p-6 flex justify-between">
+            <div className="border-t p-6 flex justify-between bg-gray-50">
               <Button
                 variant="ghost"
                 onClick={handleBack}
@@ -264,9 +293,11 @@ const BookingWizard: React.FC<BookingWizardProps> = ({
 
               <Button
                 onClick={handleNext}
-                disabled={!canProceedToStep(currentStep + 1) || currentStep === 4}
+                disabled={!canProceedToStep(currentStep + 1)}
               >
-                {currentStep === 4 ? 'Confirmar Reserva' : 'Siguiente →'}
+                {currentStep === steps.length
+                  ? "Confirmar Reserva"
+                  : "Siguiente →"}
               </Button>
             </div>
           )}

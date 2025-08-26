@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
-import { CreditCard, User, Mail, Phone, MessageSquare, AlertTriangle } from 'lucide-react';
-import { Plan, TimeSlot, PaymentMethod, BookingFormData } from '../../types';
-import { formatCurrency, formatDate, formatTime } from '../../utils/formatters';
-import Input from '../common/Input';
-import Button from '../common/Button';
+import React, { useState } from "react";
+import {
+  CreditCard,
+  User,
+  Mail,
+  Phone,
+  MessageSquare,
+  AlertTriangle,
+} from "lucide-react";
+import { Plan, TimeSlot, PaymentMethod, BookingFormData } from "../../types";
+import { formatCurrency, formatDate, formatTime } from "../../utils/formatters";
+import Input from "../common/Input";
+import Button from "../common/Button";
 
 interface BookingFormProps {
   plan: Plan;
   seats: number[];
   timeSlot: TimeSlot;
-  onSubmit: (formData: Omit<BookingFormData, 'branchId' | 'timeSlotId' | 'planId' | 'seats' | 'sessionId'>) => void;
+  onSubmit: (
+    formData: Omit<
+      BookingFormData,
+      "branchId" | "timeSlotId" | "planId" | "seats" | "sessionId"
+    >
+  ) => void;
   isLoading: boolean;
 }
 
@@ -21,11 +33,11 @@ const BookingForm: React.FC<BookingFormProps> = ({
   isLoading,
 }) => {
   const [formData, setFormData] = useState({
-    customerName: '',
-    email: '',
-    phone: '',
-    notes: '',
-    paymentMethod: 'cash' as PaymentMethod,
+    customerName: "",
+    email: "",
+    phone: "",
+    notes: "",
+    paymentMethod: "cash" as PaymentMethod,
     ageWeightConfirmed: false,
   });
 
@@ -35,21 +47,22 @@ const BookingForm: React.FC<BookingFormProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formData.customerName.trim()) {
-      newErrors.customerName = 'El nombre es requerido';
+      newErrors.customerName = "El nombre es requerido";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'El email es requerido';
+      newErrors.email = "El email es requerido";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'El email no es válido';
+      newErrors.email = "El email no es válido";
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'El teléfono es requerido';
+      newErrors.phone = "El teléfono es requerido";
     }
 
     if (!formData.ageWeightConfirmed) {
-      newErrors.ageWeightConfirmed = 'Debes confirmar los requisitos de edad y peso';
+      newErrors.ageWeightConfirmed =
+        "Debes confirmar los requisitos de edad y peso";
     }
 
     setErrors(newErrors);
@@ -58,24 +71,24 @@ const BookingForm: React.FC<BookingFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       onSubmit(formData);
     }
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
   const unitPrice = plan.currentPrice?.amount || 0;
   const baseAmount = unitPrice * seats.length;
-  const surcharge = (plan.currentPrice?.surchargePct || 0) * baseAmount / 100;
+  const surcharge = ((plan.currentPrice?.surchargePct || 0) * baseAmount) / 100;
   const total = baseAmount + surcharge;
   const deposit = Math.round(total * 0.5); // 50% deposit
 
@@ -101,7 +114,9 @@ const BookingForm: React.FC<BookingFormProps> = ({
           </div>
           <div className="flex justify-between">
             <span>Horario:</span>
-            <span className="font-medium">{formatTime(timeSlot.startTime)}</span>
+            <span className="font-medium">
+              {formatTime(timeSlot.startTime)}
+            </span>
           </div>
           <div className="flex justify-between">
             <span>Plan:</span>
@@ -109,7 +124,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
           </div>
           <div className="flex justify-between">
             <span>Karts:</span>
-            <span className="font-medium">{seats.join(', ')}</span>
+            <span className="font-medium">{seats.join(", ")}</span>
           </div>
           <div className="border-t pt-2 mt-3">
             <div className="flex justify-between font-medium">
@@ -130,7 +145,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
           <Input
             label="Nombre completo *"
             value={formData.customerName}
-            onChange={(e) => handleInputChange('customerName', e.target.value)}
+            onChange={(e) => handleInputChange("customerName", e.target.value)}
             error={errors.customerName}
             placeholder="Tu nombre y apellido"
             icon={<User className="h-4 w-4" />}
@@ -140,7 +155,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
             label="Email *"
             type="email"
             value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
+            onChange={(e) => handleInputChange("email", e.target.value)}
             error={errors.email}
             placeholder="tu@email.com"
             icon={<Mail className="h-4 w-4" />}
@@ -151,7 +166,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
           label="Teléfono *"
           type="tel"
           value={formData.phone}
-          onChange={(e) => handleInputChange('phone', e.target.value)}
+          onChange={(e) => handleInputChange("phone", e.target.value)}
           error={errors.phone}
           placeholder="11 1234 5678"
           icon={<Phone className="h-4 w-4" />}
@@ -163,7 +178,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
           </label>
           <textarea
             value={formData.notes}
-            onChange={(e) => handleInputChange('notes', e.target.value)}
+            onChange={(e) => handleInputChange("notes", e.target.value)}
             rows={3}
             className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
             placeholder="¿Alguna pregunta o pedido especial? (Opcional)"
@@ -177,17 +192,17 @@ const BookingForm: React.FC<BookingFormProps> = ({
           </label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {[
-              { value: 'cash', label: 'Efectivo', desc: 'Pagar en local' },
-              { value: 'transfer', label: 'Transferencia', desc: 'Banco' },
-              { value: 'mp', label: 'Mercado Pago', desc: 'Online' },
-              { value: 'card', label: 'Tarjeta', desc: 'Débito/Crédito' },
+              { value: "cash", label: "Efectivo", desc: "Pagar en local" },
+              { value: "transfer", label: "Transferencia", desc: "Banco" },
+              { value: "mp", label: "Mercado Pago", desc: "Online" },
+              { value: "card", label: "Tarjeta", desc: "Débito/Crédito" },
             ].map((method) => (
               <label
                 key={method.value}
                 className={`p-3 border-2 rounded-lg cursor-pointer transition-colors ${
                   formData.paymentMethod === method.value
-                    ? 'border-red-500 bg-red-50'
-                    : 'border-gray-300 hover:border-red-300'
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300 hover:border-red-300"
                 }`}
               >
                 <input
@@ -195,7 +210,9 @@ const BookingForm: React.FC<BookingFormProps> = ({
                   name="paymentMethod"
                   value={method.value}
                   checked={formData.paymentMethod === method.value}
-                  onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("paymentMethod", e.target.value)
+                  }
                   className="sr-only"
                 />
                 <div className="text-sm font-medium">{method.label}</div>
@@ -217,17 +234,22 @@ const BookingForm: React.FC<BookingFormProps> = ({
                 <input
                   type="checkbox"
                   checked={formData.ageWeightConfirmed}
-                  onChange={(e) => handleInputChange('ageWeightConfirmed', e.target.checked)}
+                  onChange={(e) =>
+                    handleInputChange("ageWeightConfirmed", e.target.checked)
+                  }
                   className="mt-1 rounded border-yellow-300 text-red-600 focus:ring-red-500"
                 />
                 <span className="text-sm text-yellow-800">
-                  Confirmo que todos los pilotos tienen <strong>15 años o más</strong> y 
-                  pesan <strong>110 kg o menos</strong>. Entiendo que estos requisitos 
+                  Confirmo que todos los pilotos tienen{" "}
+                  <strong>15 años o más</strong> y pesan{" "}
+                  <strong>110 kg o menos</strong>. Entiendo que estos requisitos
                   son obligatorios por seguridad.
                 </span>
               </label>
               {errors.ageWeightConfirmed && (
-                <p className="text-sm text-red-600 mt-1">{errors.ageWeightConfirmed}</p>
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.ageWeightConfirmed}
+                </p>
               )}
             </div>
           </div>
@@ -240,21 +262,19 @@ const BookingForm: React.FC<BookingFormProps> = ({
             <div className="text-sm text-red-800">
               <p className="font-medium mb-1">Política de seña:</p>
               <p>
-                La seña del 50% es <strong>obligatoria</strong> para confirmar tu reserva y 
-                <strong> no se reintegra</strong> en caso de cancelación. 
-                Podés reprogramar hasta 24 horas antes sin cargo adicional.
+                La seña del 50% es <strong>obligatoria</strong> para confirmar
+                tu reserva y<strong> no se reintegra</strong> en caso de
+                cancelación. Podés reprogramar hasta 24 horas antes sin cargo
+                adicional.
               </p>
             </div>
           </div>
         </div>
 
-        <Button
-          type="submit"
-          size="lg"
-          loading={isLoading}
-          className="w-full"
-        >
-          {isLoading ? 'Procesando...' : `Confirmar Reserva - ${formatCurrency(deposit / 100)}`}
+        <Button type="submit" size="lg" loading={isLoading} className="w-full">
+          {isLoading
+            ? "Procesando..."
+            : `Confirmar Reserva - ${formatCurrency(deposit / 100)}`}
         </Button>
       </form>
     </div>

@@ -52,7 +52,7 @@ export interface Kart {
   id: string;
   branchId: string;
   number: number;
-  status: 'ok' | 'oos';
+  status: "ok" | "oos";
   reason?: string;
   fromDate?: string;
   toDate?: string;
@@ -60,7 +60,7 @@ export interface Kart {
 
 export interface KartStatus {
   number: number;
-  status: 'available' | 'booked' | 'held' | 'oos';
+  status: "available" | "booked" | "held" | "oos";
   reason?: string;
 }
 
@@ -87,6 +87,17 @@ export interface Booking {
   timeSlot?: TimeSlot;
   plan?: Plan;
   payments?: Payment[];
+  participants?: Participant[];
+}
+
+export interface Participant {
+  id: string;
+  kartNumber: number;
+  name: string;
+  dni?: string;
+  isHolder: boolean;
+  email?: string; // Solo para el titular
+  phone?: string; // Solo para el titular
 }
 
 export interface Payment {
@@ -94,7 +105,7 @@ export interface Payment {
   bookingId: string;
   method: PaymentMethod;
   amount: number;
-  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  status: "pending" | "completed" | "failed" | "refunded";
   externalRef?: string;
   metadata?: string;
   createdAt: string;
@@ -104,22 +115,25 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'staff';
+  role: "admin" | "staff";
   active: boolean;
 }
 
-export type PaymentMethod = 'cash' | 'transfer' | 'mp' | 'card';
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'noShow';
-export type PaymentStatus = 'unpaid' | 'deposit' | 'paid';
+export interface Setting {
+  id: string;
+  key: string;
+  value: string;
+}
+
+export type PaymentMethod = "cash" | "transfer" | "mp" | "card";
+export type BookingStatus = "pending" | "confirmed" | "cancelled" | "noShow";
+export type PaymentStatus = "unpaid" | "deposit" | "paid";
 
 export interface BookingFormData {
   branchId: string;
   timeSlotId: string;
   planId: string;
-  seats: number[];
-  customerName: string;
-  email: string;
-  phone: string;
+  participants: Participant[];
   notes?: string;
   paymentMethod: PaymentMethod;
   sessionId: string;
