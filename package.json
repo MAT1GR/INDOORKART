@@ -29,6 +29,8 @@
   "author": "Rosario Indoor Kart",
   "license": "MIT",
   "dependencies": {
+    "@mercadopago/sdk-js": "^0.0.3",
+    "@mercadopago/sdk-react": "^1.0.4",
     "@prisma/client": "^6.14.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
